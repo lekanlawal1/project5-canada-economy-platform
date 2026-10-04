@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Consumer prices</title>
+  <meta name="description" content="Canadian inflation by province and by product, against the Bank of Canada target.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/plotly.min.js"></script>
+  <script src="assets/app.js"></script>
+</head>
+<body>
+<header id="top"></header>
+<main>
+  <div class="page-head">
+    <div class="eyebrow">Prices</div>
+    <h1>Inflation</h1>
+    <p>Consumer Price Index, 12-month change. Not seasonally adjusted: comparing with the same month a year
+      earlier removes the seasonal pattern. CPI is never revised once published.</p>
+  </div>
+
+  <div class="filters">
+    <label>Geography <select id="geo"></select></label>
+    <label>Period
+      <span class="seg" id="range">
+        <button type="button" data-years="5" aria-pressed="true">5 years</button>
+        <button type="button" data-years="10" aria-pressed="false">10 years</button>
+        <button type="button" data-years="0" aria-pressed="false">Since 2000</button>
+      </span>
+    </label>
+  </div>
+
+  <div class="card">
+    <h2 id="cpi-title">Headline and core inflation</h2>
+    <p class="sub">%. Core excludes food and energy, the most volatile prices. Shaded band: the Bank of Canada's
+      1 to 3% target range (the target itself is 2%).</p>
+    <div class="chart" id="cpi" role="img" aria-label="Headline and core inflation over time"></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="card">
+      <h2 id="comp-title">What is driving it</h2>
+      <p class="sub">12-month change by product group, %, latest month. Grey bar: all-items, for reference.</p>
+      <div class="chart tall" id="components" role="img" aria-label="Inflation by product group"></div>
+    </div>
+    <div class="card">
+      <h2>Rent, mortgage interest and groceries</h2>
+      <p class="sub">12-month change, %, since 2018. The costs households notice most.</p>
+      <div class="chart tall" id="shelter" role="img" aria-label="Rent, mortgage interest and grocery inflation"></div>
+    </div>
+  </div>
+</main>
+<footer id="foot"></footer>
+
+<script>
+App.init();
+let data, geo = "Canada", years = 5;
+const SHORT = {
+  "All-items excluding food and energy": "Core (excl. food, energy)",
+  "Household operations, furnishings and equipment": "Household operations",
+  "Recreation, education and reading": "Recreation and education",
+  "Alcoholic beverages, tobacco products and recreational cannabis": "Alcohol, tobacco, cannabis",
+  "Food purchased from stores": "Groceries",
+};
+const short = (p) => SHORT[p] || p;
+
+function since(cols) {
+  if (!years) return cols;
+  const last = cols.month[cols.month.length - 1];
+  const start = `${+last.slice(0, 4) - years}${last.slice(4)}`;
+  const i = cols.month.findIndex((m) => m >= start);
+  return Object.fromEntries(Object.entries(cols).map(([k, v]) => [k, v.slice(i)]));
+}
+
+function render() {
+  const s = data.series[geo];
+  const h = since(s.headline);
+  const n = s.headline.month.length - 1;
+  document.getElementById("cpi-title").textContent =
+    `Headline and core inflation, ${geo}: ${App.num(s.headline.all_items[n])}% in ${App.month(s.headline.month[n])}`;
+
+  App.chart("cpi", (t) => ({
+    data: [
+      { x: App.dates(h.month), y: h.all_items, type: "scatter", mode: "lines", name: "All-items",
+        line: { color: t.s1, width: 2 }, hovertemplate: "%{y:.1f}%<extra>All-items</extra>" },
+      { x: App.dates(h.month), y: h.core, type: "scatter", mode: "lines", name: "Core (excl. food and energy)",
+        line: { color: t.s2, width: 2 }, hovertemplate: "%{y:.1f}%<extra>Core</extra>" },
+    ],
+    layout: { showlegend: true, yaxis: { ticksuffix: "%" },
+      shapes: [{ type: "rect", xref: "paper", x0: 0, x1: 1, y0: 1, y1: 3, fillcolor: t.band, line: { width: 0 }, layer: "below" }] },
+  }), () => ({ head: ["Month", "All-items (%)", "Core (%)"],
+    rows: h.month.map((m, i) => [App.month(m), App.num(h.all_items[i]), App.num(h.core[i])]).reverse() }));
+
+  const comps = s.components.filter((c) => c.yoy_pct != null).sort((a, b) => a.yoy_pct - b.yoy_pct);
+  document.getElementById("comp-title").textContent = `What is driving it, ${App.month(comps[0].month)}`;
+  App.chart("components", (t) => ({
+    data: [{ y: comps.map((c) => short(c.product)), x: comps.map((c) => c.yoy_pct), type: "bar", orientation: "h",
+      marker: { color: comps.map((c) => (c.product === "All-items" ? t.neutral : t.s1)) },
+      hovertemplate: "%{y}: %{x:+.1f}%<extra></extra>" }],
+    layout: { hovermode: "closest", bargap: 0.3,
+      xaxis: { type: "linear", ticksuffix: "%", showgrid: true, zeroline: true, hoverformat: "" },
+      yaxis: { showgrid: false, tickfont: { size: 11 } } },
+  }), () => ({ head: ["Product group", "12-month change (%)", "Monthly change (%)"],
+    rows: [...comps].reverse().map((c) => [c.product, App.signed(c.yoy_pct), App.signed(c.mom_pct)]) }));
+
+  const sh = s.shelter;
+  const lines = [["rent", "Rent", "s1"], ["mortgage", "Mortgage interest", "s2"], ["groceries", "Groceries", "s3"]];
+  App.chart("shelter", (t) => ({
+    data: lines.map(([k, label, c]) => ({ x: App.dates(sh.month), y: sh[k], type: "scatter", mode: "lines",
+      name: label, line: { color: t[c], width: 2 }, hovertemplate: `%{y:.1f}%<extra>${label}</extra>` })),
+    layout: { showlegend: true, yaxis: { ticksuffix: "%", zeroline: true } },
+  }), () => ({ head: ["Month", "Rent (%)", "Mortgage interest (%)", "Groceries (%)"],
+    rows: sh.month.map((m, i) => [App.month(m), App.num(sh.rent[i]), App.num(sh.mortgage[i]), App.num(sh.groceries[i])]).reverse() }));
+}
+
+(async () => {
+  try {
+    data = await App.json("prices");
+    App.geoSelect("geo", data.geos, geo, (g) => { geo = g; render(); });
+    document.querySelectorAll("#range button").forEach((b) => b.addEventListener("click", () => {
+      document.querySelectorAll("#range button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+      years = +b.dataset.years; render();
+    }));
+    render();
+  } catch (err) { App.fail(err); }
+})();
+</script>
+</body>
+</html>

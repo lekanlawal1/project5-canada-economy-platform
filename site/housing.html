@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New housing prices</title>
+  <meta name="description" content="New home prices by province and metro area from the New Housing Price Index.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/plotly.min.js"></script>
+  <script src="assets/app.js"></script>
+</head>
+<body>
+<header id="top"></header>
+<main>
+  <div class="page-head">
+    <div class="eyebrow">Housing</div>
+    <h1>New home prices</h1>
+    <p>New Housing Price Index: builders' prices for new houses of the same specification, so it tracks price,
+      not the mix of homes sold. It does not cover resale homes or condominiums.</p>
+  </div>
+
+  <div class="filters">
+    <label>Compare with Canada <select id="geo"></select></label>
+    <label>Ranking shows
+      <span class="seg" id="level">
+        <button type="button" data-level="province" aria-pressed="true">Provinces</button>
+        <button type="button" data-level="metro" aria-pressed="false">Metro areas</button>
+      </span>
+    </label>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h2 id="rank-title">12-month change</h2>
+      <p class="sub">%, house and land. Faded bars: StatCan flags the estimate "use with caution".</p>
+      <div class="chart tall" id="rank" role="img" aria-label="New home price change by geography"></div>
+    </div>
+    <div class="card">
+      <h2 id="trend-title">Over time</h2>
+      <p class="sub">12-month change, %, since 2000.</p>
+      <div class="chart tall" id="trend" role="img" aria-label="New home price change over time"></div>
+    </div>
+  </div>
+</main>
+<footer id="foot"></footer>
+
+<script>
+App.init();
+let data, geo = "Ontario", level = "province";
+
+function render() {
+  const rows = data.latest.filter((r) => r.geo_level === level).sort((a, b) => a.yoy_pct - b.yoy_pct);
+  const canada = data.latest.find((r) => r.geo === "Canada");
+  document.getElementById("rank-title").textContent =
+    `12-month change, ${App.month(canada.month)} (Canada ${App.signed(canada.yoy_pct)}%)`;
+  App.chart("rank", (t) => ({
+    data: [{ y: rows.map((r) => r.geo.replace(/, [^,]+$/, "")), x: rows.map((r) => r.yoy_pct), type: "bar", orientation: "h",
+      marker: { color: rows.map((r) => (r.geo === geo ? t.s2 : t.s1)), opacity: rows.map((r) => (r.use_with_caution ? 0.4 : 1)) },
+      customdata: rows.map((r) => (r.use_with_caution ? " (use with caution)" : "")),
+      hovertemplate: "%{y}: %{x:+.1f}%%{customdata}<extra></extra>" }],
+    layout: { hovermode: "closest", bargap: 0.3, margin: { t: 26 },
+      xaxis: { type: "linear", ticksuffix: "%", showgrid: true, zeroline: true, hoverformat: "" },
+      yaxis: { showgrid: false, tickfont: { size: 11 } },
+      shapes: [{ type: "line", xref: "x", yref: "paper", x0: canada.yoy_pct, x1: canada.yoy_pct, y0: 0, y1: 1,
+        line: { color: t.ink2, width: 1 } }],
+      annotations: [{ x: canada.yoy_pct, y: 1, xref: "x", yref: "paper", yanchor: "bottom", text: "Canada",
+        showarrow: false, font: { size: 11, color: t.ink2 } }] },
+  }), () => ({ head: ["Geography", "12-month change (%)", "Use with caution?"],
+    rows: [...rows].reverse().map((r) => [r.geo, App.signed(r.yoy_pct), r.use_with_caution ? "yes" : "no"]) }));
+
+  const a = data.series.Canada, b = data.series[geo];
+  document.getElementById("trend-title").textContent = `${geo} vs Canada`;
+  App.chart("trend", (t) => ({
+    data: [
+      { x: App.dates(a.month), y: a.v, type: "scatter", mode: "lines", name: "Canada",
+        line: { color: t.s1, width: 2 }, hovertemplate: "%{y:+.1f}%<extra>Canada</extra>" },
+      ...(geo === "Canada" ? [] : [{ x: App.dates(b.month), y: b.v, type: "scatter", mode: "lines", name: geo,
+        line: { color: t.s2, width: 2 }, hovertemplate: `%{y:+.1f}%<extra>${geo}</extra>` }]),
+    ],
+    layout: { showlegend: true, yaxis: { ticksuffix: "%", zeroline: true } },
+  }), () => ({ head: ["Month", "Canada (%)", `${geo} (%)`],
+    rows: b.month.map((m, i) => [App.month(m), App.signed(a.v[a.month.indexOf(m)]), App.signed(b.v[i])]).reverse() }));
+}
+
+(async () => {
+  try {
+    data = await App.json("housing");
+    App.geoSelect("geo", data.geos.filter((g) => g !== "Canada"), geo, (g) => { geo = g; render(); });
+    document.querySelectorAll("#level button").forEach((btn) => btn.addEventListener("click", () => {
+      document.querySelectorAll("#level button").forEach((x) => x.setAttribute("aria-pressed", x === btn));
+      level = btn.dataset.level; render();
+    }));
+    render();
+  } catch (err) { App.fail(err); }
+})();
+</script>
+</body>
+</html>

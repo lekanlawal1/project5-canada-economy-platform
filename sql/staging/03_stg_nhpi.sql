@@ -10,6 +10,7 @@ SELECT
     geo,
     component,
     value                                                 AS index_value,
-    status = 'E'                                          AS use_with_caution
+    -- coalesce: status is NULL on ordinary rows, and NULL = 'E' is NULL, not false.
+    coalesce(status = 'E', false)                         AS use_with_caution
 FROM raw_nhpi
 WHERE value IS NOT NULL;

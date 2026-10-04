@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canada Economy Intelligence</title>
+  <meta name="description" content="Canada's labour market, prices, housing and GDP from Statistics Canada open data, refreshed automatically, with honest forecasts.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/plotly.min.js"></script>
+  <script src="assets/app.js"></script>
+</head>
+<body>
+<header id="top"></header>
+<main>
+  <div class="page-head">
+    <div class="eyebrow">Overview</div>
+    <h1>Canada's economy, month by month</h1>
+    <p>Headline numbers from Statistics Canada, refreshed automatically after each release.
+      Each figure shows its own reference month: the tables are published on different schedules.</p>
+  </div>
+
+  <section class="grid grid-3 tiles" id="tiles" aria-label="Headline indicators"></section>
+
+  <section id="briefing-section" hidden>
+    <h2 class="section-title">Monthly briefing</h2>
+    <div class="card" id="briefing"></div>
+  </section>
+
+  <h2 class="section-title">Forecasts, with their track record</h2>
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Unemployment rate</h2>
+      <p class="sub">Canada, seasonally adjusted, %. Forecast points show the 80% range from past errors.</p>
+      <div class="chart" id="fc-unemployment" role="img" aria-label="Unemployment rate history and forecast"></div>
+      <div class="verdict" id="verdict-unemployment"></div>
+    </div>
+    <div class="card">
+      <h2>Inflation (CPI, 12-month change)</h2>
+      <p class="sub">Canada, all-items, %. Shaded band: Bank of Canada 1 to 3% target range.</p>
+      <div class="chart" id="fc-cpi" role="img" aria-label="Inflation history and forecast"></div>
+      <div class="verdict" id="verdict-cpi"></div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Output</h2>
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Real GDP, monthly change</h2>
+      <p class="sub">All industries, chained 2017 dollars, seasonally adjusted, %.</p>
+      <div class="chart tall" id="gdp-history" role="img" aria-label="Monthly GDP growth"></div>
+    </div>
+    <div class="card">
+      <h2 id="gdp-sectors-title">Which sectors moved</h2>
+      <p class="sub">Monthly change by sector, %. Bar length is the rate, not the size: hover for each sector's share of GDP.</p>
+      <div class="chart tall" id="gdp-sectors" role="img" aria-label="GDP change by sector"></div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Unusual moves, last three months</h2>
+  <div class="card">
+    <p class="sub">Changes far outside each series' own recent behaviour (robust z-score of at least 3.5
+      against the prior 36 months). Unusual is not the same as important: yearly tax changes show up here too.</p>
+    <ul class="anoms" id="anomalies"></ul>
+  </div>
+</main>
+<footer id="foot"></footer>
+
+<script>
+App.init();
+
+const VERDICT = {
+  naive: "the simplest forecast (no change from the latest value)",
+  sarima_airline: "a seasonal ARIMA model",
+};
+
+function tileHTML(t, d) {
+  const colour = App.tok().s1;
+  let delta = "";
+  if (t.key === "unemployment") {
+    delta = `${App.signed(t.change)} pts vs last month <span class="pill${t.significant ? " sig" : ""}">${t.significant ? "significant" : "within sampling noise"}</span>`;
+  } else if (t.key === "cpi" || t.key === "core") {
+    delta = `${App.signed(t.change)} pts vs last month's rate`;
+  } else if (t.key === "housing") {
+    delta = "New homes, house and land";
+  } else if (t.key === "vacancies") {
+    delta = `${App.num(t.unemployed_per_vacancy, 1)} unemployed people per vacancy`;
+  } else if (t.key === "gdp") {
+    delta = `${App.signed(t.yoy_pct)}% vs a year ago`;
+  }
+  const value = t.key === "gdp" ? App.signed(t.value) : App.num(t.value);
+  return `<div class="card tile">
+    <div class="label">${t.label}</div>
+    <div class="value">${value}${t.unit}</div>
+    <div class="delta">${delta}</div>
+    ${App.sparkline(t.spark.v, colour)}
+    <div class="asof">${App.month(t.month)} &middot; last 3 years shown</div></div>`;
+}
+
+function forecastChart(id, hist, rows, opts) {
+  const last = hist.month[hist.month.length - 1];
+  const lastV = hist.v[hist.v.length - 1];
+  App.chart(id, (t) => {
+    const fx = rows.map((r) => r.target + "-01");
+    const fy = rows.map((r) => r.forecast);
+    const data = [
+      { x: App.dates(hist.month), y: hist.v, type: "scatter", mode: "lines", name: "Actual",
+        line: { color: t.s1, width: 2 }, hovertemplate: "%{y:.1f}%<extra>Actual</extra>" },
+      { x: [last + "-01", ...fx], y: [lastV, ...fy], type: "scatter", mode: "lines+markers", name: "Forecast",
+        line: { color: t.s2, width: 2, dash: "dot" }, marker: { size: 8, color: t.s2, line: { color: t.surface, width: 2 } },
+        error_y: { type: "data", symmetric: false, color: t.s2, thickness: 1.5, width: 4,
+          array: [0, ...rows.map((r) => r.high_80 - r.forecast)], arrayminus: [0, ...rows.map((r) => r.forecast - r.low_80)] },
+        customdata: [[null, null], ...rows.map((r) => [r.low_80, r.high_80])],
+        hovertemplate: "%{y:.1f}% (80% range %{customdata[0]:.1f} to %{customdata[1]:.1f})<extra>Forecast</extra>" },
+    ];
+    const shapes = opts.band ? [{ type: "rect", xref: "paper", x0: 0, x1: 1, y0: 1, y1: 3, fillcolor: t.band, line: { width: 0 }, layer: "below" }] : [];
+    return { data, layout: { showlegend: true, shapes, yaxis: { ticksuffix: "%" } } };
+  }, () => ({
+    head: ["Month", "Actual (%)", "Forecast (%)", "80% range"],
+    // Newest first: forecasts, then actuals going back.
+    rows: [...[...rows].reverse().map((r) => [App.month(r.target), "", App.num(r.forecast, 1), `${App.num(r.low_80, 1)} to ${App.num(r.high_80, 1)}`]),
+           ...hist.month.map((m, i) => [App.month(m), App.num(hist.v[i]), "", ""]).reverse()],
+  }));
+}
+
+function verdict(id, series, skill) {
+  const lines = [1, 3, 6].map((h) => {
+    const rows = skill.filter((s) => s.series === series && s.horizon === h);
+    const best = rows.filter((s) => s.method !== "naive").sort((a, b) => a.mae - b.mae)[0];
+    const naive = rows.find((s) => s.method === "naive");
+    const wins = best && best.skill_vs_naive > 0 && best.dm_p_value < 0.05;
+    return `${h} month${h > 1 ? "s" : ""}: ${wins ? `<b>model wins</b> (${Math.round(best.skill_vs_naive * 100)}% less error)` :
+      `<b>no-change forecast</b> (best model ${best.skill_vs_naive > 0 ? Math.round(best.skill_vs_naive * 100) + "% better but not significant" : "worse"})`}, typical miss ${App.num(naive.mae, 2)} pts`;
+  });
+  const n = skill.find((s) => s.series === series && s.horizon === 1).n;
+  document.getElementById(id).innerHTML =
+    `Tested on ${n} past monthly forecasts since 2010 (COVID months excluded). Published method by horizon: ` + lines.join("; ") + ".";
+}
+
+(async () => {
+  try {
+    const d = await App.json("overview");
+    const drawTiles = () => { document.getElementById("tiles").innerHTML = d.tiles.map((t) => tileHTML(t, d)).join(""); };
+    drawTiles();
+    document.querySelector(".theme-btn").addEventListener("click", () => setTimeout(drawTiles));
+
+    const fc = (s) => d.forecasts.filter((r) => r.series === s);
+    forecastChart("fc-unemployment", d.history.unemployment, fc("unemployment"), {});
+    forecastChart("fc-cpi", d.history.cpi_yoy, fc("cpi_yoy"), { band: true });
+    verdict("verdict-unemployment", "unemployment", d.skill);
+    verdict("verdict-cpi", "cpi_yoy", d.skill);
+
+    App.chart("gdp-history", (t) => ({
+      data: [{ x: App.dates(d.gdp_history.month), y: d.gdp_history.v, type: "bar", name: "GDP change",
+        marker: { color: d.gdp_history.v.map((v) => (v < 0 ? t.neg : t.pos)), line: { width: 0 } },
+        hovertemplate: "%{y:+.2f}%<extra></extra>" }],
+      layout: { bargap: 0.25, yaxis: { ticksuffix: "%", zeroline: true } },
+    }), () => ({ head: ["Month", "Change (%)"], rows: d.gdp_history.month.map((m, i) => [App.month(m), App.signed(d.gdp_history.v[i], 2)]).reverse() }));
+
+    const sectors = d.gdp_sectors;
+    document.getElementById("gdp-sectors-title").textContent = `Which sectors moved in ${App.month(sectors[0].month)}`;
+    App.chart("gdp-sectors", (t) => ({
+      data: [{ y: sectors.map((s) => s.industry), x: sectors.map((s) => s.mom_pct), type: "bar", orientation: "h",
+        marker: { color: sectors.map((s) => (s.mom_pct < 0 ? t.neg : t.pos)) },
+        customdata: sectors.map((s) => s.share_of_total_pct),
+        hovertemplate: "%{y}: %{x:+.2f}% (%{customdata:.1f}% of GDP)<extra></extra>" }],
+      layout: { hovermode: "closest", margin: { l: 8 }, xaxis: { type: "linear", ticksuffix: "%", showgrid: true, zeroline: true, hoverformat: "" },
+        yaxis: { showgrid: false, tickfont: { size: 10.5 } }, bargap: 0.3 },
+    }), () => ({ head: ["Sector", "Monthly change (%)", "Yearly change (%)", "Share of GDP (%)"],
+      rows: [...sectors].reverse().map((s) => [s.industry, App.signed(s.mom_pct, 2), App.signed(s.yoy_pct), App.num(s.share_of_total_pct, 1)]) }));
+
+    const list = document.getElementById("anomalies");
+    list.innerHTML = d.anomalies.length ? d.anomalies.map((a) =>
+      `<li><span class="z">z ${App.signed(a.robust_z, 1)}</span><span><b>${a.series.replace("CPI: ", "Prices: ")}</b>, ${a.geo}, ${App.month(a.month)}:
+        ${App.signed(a.change_value)} ${a.change_unit}</span></li>`).join("")
+      : "<li>No unusual moves in the last three months.</li>";
+
+    try {
+      const b = await App.json("briefing");
+      document.getElementById("briefing").innerHTML = b.html;
+      document.getElementById("briefing-section").hidden = false;
+    } catch { /* briefing is optional until phase 6 runs */ }
+  } catch (err) { App.fail(err); }
+})();
+</script>
+</body>
+</html>
