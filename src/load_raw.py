@@ -56,16 +56,20 @@ def load(con: duckdb.DuckDBPyConnection, manifest: dict) -> list[tuple]:
     return results
 
 
+def configure(con: duckdb.DuckDBPyConnection) -> None:
+    # Progress bars flood CI logs with carriage returns.
+    con.execute("SET enable_progress_bar = false")
+    # Cap DuckDB's buffer pool so a small CI runner is safe. Measured on the 1.18 GB LFS
+    # file: peak process memory about 830 MB uncapped (DuckDB uses spare RAM for parallel
+    # scans), about 660 MB with this cap, same rows, same speed. The limit covers DuckDB's
+    # buffers, not the whole Python process, so total memory sits a little above it.
+    con.execute(f"SET memory_limit = '{MEMORY_LIMIT}'")
+
+
 def main() -> int:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with duckdb.connect(str(DB_PATH)) as con:
-        # Progress bars flood CI logs with carriage returns.
-        con.execute("SET enable_progress_bar = false")
-        # Cap DuckDB's buffer pool so a small CI runner is safe. Measured on the 1.18 GB LFS
-        # file: peak process memory about 830 MB uncapped (DuckDB uses spare RAM for parallel
-        # scans), about 660 MB with this cap, same rows, same speed. The limit covers DuckDB's
-        # buffers, not the whole Python process, so total memory sits a little above it.
-        con.execute(f"SET memory_limit = '{MEMORY_LIMIT}'")
+        configure(con)
         for table, rows, max_ref, secs in load(con, load_manifest()):
             print(f"{table:20s} {rows:>9,} rows  latest {max_ref}  ({secs:.1f}s)")
     return 0

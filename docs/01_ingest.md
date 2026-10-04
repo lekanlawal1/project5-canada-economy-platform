@@ -13,7 +13,7 @@ python -m pytest          # offline tests, no download needed
 
 | Table | Content | Zip | Unzipped | Rows | Rows kept | Latest month |
 |---|---|---|---|---|---|---|
-| 14-10-0287 | Labour Force Survey | 60 MB | 1,180 MB | 5,466,528 | 2,033,152 | 2026-08 |
+| 14-10-0287 | Labour Force Survey | 60 MB | 1,180 MB | 5,466,528 | 3,263,744 | 2026-08 |
 | 18-10-0004 | Consumer Price Index | 15 MB | 161 MB | 1,152,913 | 93,896 | 2026-08 |
 | 18-10-0205 | New Housing Price Index | 0.4 MB | 9 MB | 65,760 | 65,760 | 2026-08 |
 | 14-10-0371 | Job vacancies | 0.05 MB | 0.7 MB | 5,460 | 5,460 | 2026-07 |
@@ -54,9 +54,11 @@ Loading the same file into pandas as text would need several GB.
 Profiled every column first, then chose the slices. The full reasoning is in the comment
 at the top of each file in `sql/raw/`.
 
-- **Labour Force Survey:** the estimate and its standard error (so the dashboard can say
-  whether a monthly move is real or within sampling noise), seasonally adjusted and
-  unadjusted series. Trend-cycle is dropped because StatCan revises its latest points
+- **Labour Force Survey:** the estimate and StatCan's three published standard errors (of
+  the level, of the monthly change, of the yearly change), so the dashboard can say whether
+  a move is real or within sampling noise. The change errors are kept rather than derived
+  because LFS reuses 5/6 of its sample each month, which makes consecutive months
+  correlated. Seasonally adjusted and unadjusted series. Trend-cycle is dropped because StatCan revises its latest points
   heavily. Four non-overlapping age groups. Canada and the 10 provinces (this table does not
   cover the territories).
 - **CPI:** Canada and the 10 provinces, and 15 product groups: all-items, the core measure

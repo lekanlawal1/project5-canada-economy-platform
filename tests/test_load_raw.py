@@ -19,7 +19,7 @@ def run_sql(tmp_path, sql_file, header, rows):
     return con
 
 
-def test_lfs_keeps_estimates_and_drops_trend_cycle(tmp_path):
+def test_lfs_keeps_estimates_and_change_errors_and_drops_trend_cycle(tmp_path):
     header = ('REF_DATE,GEO,DGUID,Labour force characteristics,Gender,Age group,Statistics,'
               'Data type,' + STD)
     tail = "Percent,239,units,0,v1,1.1,6.4,,,,1"
@@ -30,8 +30,9 @@ def test_lfs_keeps_estimates_and_drops_trend_cycle(tmp_path):
         f"2026-08,Canada,x,Unemployment rate,Total - Gender,15 years and over,Standard error of month-to-month change,Seasonally adjusted,{tail}",
     ]
     con = run_sql(tmp_path, "raw/01_raw_lfs.sql", header, rows)
-    assert con.execute("SELECT data_type, age_group, statistic FROM raw_lfs").fetchall() == [
-        ("Seasonally adjusted", "15 years and over", "Estimate")
+    assert sorted(con.execute("SELECT data_type, age_group, statistic FROM raw_lfs").fetchall()) == [
+        ("Seasonally adjusted", "15 years and over", "Estimate"),
+        ("Seasonally adjusted", "15 years and over", "Standard error of month-to-month change"),
     ]
 
 
