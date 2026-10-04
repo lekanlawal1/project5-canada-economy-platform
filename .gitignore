@@ -1,0 +1,13 @@
+# Raw StatCan downloads (re-downloaded by the pipeline; the LFS table is 1.18 GB)
+data/raw/
+data/*.duckdb
+
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+.DS_Store
