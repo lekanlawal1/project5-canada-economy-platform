@@ -1,5 +1,6 @@
 {
   "dim_geo": 43,
+  "forecast_latest": 6,
   "mart_cpi_monthly": 93896,
   "mart_gdp_monthly": 10875,
   "mart_housing_monthly": 54934,
