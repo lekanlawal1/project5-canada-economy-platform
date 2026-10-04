@@ -1,0 +1,57 @@
+name: Deploy dashboard
+
+# Full pipeline, then publish site/ to GitHub Pages:
+#   download, build, forecast, data tests, export, deploy.
+# The data tests run BEFORE export: if any test errors, the job stops and the live site keeps
+# its last good version. Bad data never reaches the public page.
+#
+# Manual trigger only until GitHub Pages is switched on for the repository (Settings, Pages,
+# Source: GitHub Actions). Phase 7 adds a schedule after StatCan release days.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer run replaces a queued one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Download StatCan tables
+        run: python -m src.ingest
+      - name: Build warehouse
+        run: python -m src.build
+      - name: Forecasts and backtest
+        run: python -m src.forecast
+      - name: Data tests (a failure stops the deploy)
+        run: python -m src.data_tests
+      - name: Export dashboard data
+        run: python -m src.site_export
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

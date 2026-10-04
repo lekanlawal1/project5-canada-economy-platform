@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Province compare</title>
+  <meta name="description" content="Canada's ten provinces side by side: unemployment, inflation, new home prices and job vacancies.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/plotly.min.js"></script>
+  <script src="assets/app.js"></script>
+</head>
+<body>
+<header id="top"></header>
+<main>
+  <div class="page-head">
+    <div class="eyebrow">Province compare</div>
+    <h1>Ten provinces, side by side</h1>
+    <p>The latest value of each indicator. Columns carry their own month because the tables are released on
+      different schedules. Territories are not covered by the Labour Force Survey table used here.</p>
+  </div>
+
+  <div class="card">
+    <h2>Scorecard</h2>
+    <p class="sub">Click a column heading to sort. Rank 1 is the lowest unemployment or the highest inflation.</p>
+    <div class="table-wrap" style="max-height:none" id="scorecard"></div>
+  </div>
+
+  <div class="filters" style="margin-top:16px">
+    <label>Indicator <select id="metric"></select></label>
+  </div>
+  <div class="card">
+    <h2 id="metric-title"></h2>
+    <p class="sub" id="metric-sub"></p>
+    <div class="chart" id="metric-chart" role="img" aria-label="Provinces ranked on the selected indicator"></div>
+  </div>
+
+  <h2 class="section-title" id="sm-title">Unemployment rate since 2016, each province against Canada</h2>
+  <div class="card">
+    <p class="sub">%. Blue: the province. Grey: Canada. Same scale on every panel so levels compare directly.</p>
+    <div class="chart" id="multiples" style="height:520px" role="img" aria-label="Unemployment rate by province, small multiples"></div>
+  </div>
+</main>
+<footer id="foot"></footer>
+
+<script>
+App.init();
+let data, metric = "unemployment_rate", sortKey = "sort_order", sortDir = 1;
+
+const METRICS = {
+  unemployment_rate: { label: "Unemployment rate", unit: "%", month: "labour_month", lowGood: true,
+    sub: "Seasonally adjusted, ages 15 and over." },
+  unemployment_rate_yoy_pp: { label: "Unemployment rate, change over 12 months", unit: " pts", month: "labour_month", signed: true,
+    sub: "Faded bars: the change is within StatCan's margin of error." , sig: "unemployment_rate_yoy_significant" },
+  cpi_yoy_pct: { label: "Inflation (CPI, 12-month)", unit: "%", month: "cpi_month", sub: "All-items, not seasonally adjusted." },
+  new_housing_price_yoy_pct: { label: "New home prices, 12-month change", unit: "%", month: "housing_month", signed: true,
+    sub: "New Housing Price Index, house and land." },
+  job_vacancy_rate: { label: "Job vacancy rate", unit: "%", month: "job_month", sub: "Vacancies as a share of labour demand. Not seasonally adjusted." },
+  unemployed_per_vacancy: { label: "Unemployed people per job vacancy", unit: "", month: "job_month", decimals: 2,
+    sub: "Blank when StatCan grades the vacancy estimate E or F (low reliability)." },
+};
+
+const COLUMNS = [
+  ["geo", "Geography", (r) => r.geo],
+  ["unemployment_rate", "Unemployment (%)", (r) => App.num(r.unemployment_rate)],
+  ["unemployment_rate_yoy_pp", "12-month change (pts)", (r) => App.signed(r.unemployment_rate_yoy_pp) + (r.unemployment_rate_yoy_significant ? "" : "*")],
+  ["province_rank_unemployment", "Rank", (r) => r.province_rank_unemployment ?? ""],
+  ["cpi_yoy_pct", "Inflation (%)", (r) => App.num(r.cpi_yoy_pct)],
+  ["province_rank_inflation", "Rank", (r) => r.province_rank_inflation ?? ""],
+  ["new_housing_price_yoy_pct", "New homes (%)", (r) => App.signed(r.new_housing_price_yoy_pct)],
+  ["job_vacancy_rate", "Vacancy rate (%)", (r) => App.num(r.job_vacancy_rate) + (r.job_vacancy_rate_grade && "EF".includes(r.job_vacancy_rate_grade) ? ` (${r.job_vacancy_rate_grade})` : "")],
+  ["unemployed_per_vacancy", "Unemployed per vacancy", (r) => App.num(r.unemployed_per_vacancy, 2)],
+];
+
+function scorecard() {
+  const canada = data.scorecard.find((r) => r.geo === "Canada");
+  const rows = data.scorecard.filter((r) => r.geo !== "Canada").sort((a, b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (x == null) return 1; if (y == null) return -1;
+    return (x > y ? 1 : x < y ? -1 : 0) * sortDir;
+  });
+  const months = `<tr><th scope="row">Reference month</th><td>${App.month(canada.labour_month)}</td><td></td><td></td>` +
+    `<td>${App.month(canada.cpi_month)}</td><td></td><td>${App.month(canada.housing_month)}</td>` +
+    `<td>${App.month(canada.job_month)}</td><td>${App.month(canada.job_month)}</td></tr>`;
+  const body = [canada, ...rows].map((r) => `<tr${r.geo === "Canada" ? ' style="font-weight:600"' : ""}>` +
+    COLUMNS.map(([, , f]) => `<td>${f(r) ?? ""}</td>`).join("") + "</tr>").join("");
+  document.getElementById("scorecard").innerHTML =
+    `<table><thead><tr>${COLUMNS.map(([k, label]) => `<th scope="col" class="sortable" data-key="${k === "geo" ? "sort_order" : k}"
+      aria-sort="${(k === "geo" ? "sort_order" : k) === sortKey ? (sortDir > 0 ? "ascending" : "descending") : "none"}">${label}</th>`).join("")}</tr></thead>
+      <tbody>${months}${body}</tbody></table>
+      <p class="note" style="padding:0 10px 8px">* within StatCan's margin of error. (E) or (F): StatCan quality grade, use with caution or unreliable.</p>`;
+  document.querySelectorAll("#scorecard th.sortable").forEach((th) => th.addEventListener("click", () => {
+    const k = th.dataset.key;
+    sortDir = k === sortKey ? -sortDir : 1; sortKey = k; scorecard();
+  }));
+}
+
+function metricChart() {
+  const m = METRICS[metric];
+  const canada = data.scorecard.find((r) => r.geo === "Canada");
+  const rows = data.scorecard.filter((r) => r.geo !== "Canada" && r[metric] != null).sort((a, b) => a[metric] - b[metric]);
+  const missing = data.scorecard.filter((r) => r.geo !== "Canada" && r[metric] == null).map((r) => r.geo);
+  const d = m.decimals ?? 1;
+  document.getElementById("metric-title").textContent = `${m.label}, ${App.month(canada[m.month])}`;
+  document.getElementById("metric-sub").textContent = m.sub + (missing.length ? ` Not available: ${missing.join(", ")}.` : "");
+  App.chart("metric-chart", (t) => ({
+    data: [{ y: rows.map((r) => r.geo), x: rows.map((r) => r[metric]), type: "bar", orientation: "h",
+      marker: { color: t.s1, opacity: rows.map((r) => (m.sig && !r[m.sig] ? 0.4 : 1)) },
+      hovertemplate: `%{y}: %{x:${m.signed ? "+" : ""}.${d}f}${m.unit}<extra></extra>` }],
+    layout: { hovermode: "closest", bargap: 0.3, margin: { t: 26 },
+      xaxis: { type: "linear", ticksuffix: m.unit.trim() === "%" ? "%" : "", showgrid: true, zeroline: true, hoverformat: "" },
+      yaxis: { showgrid: false },
+      shapes: canada[metric] == null ? [] : [{ type: "line", xref: "x", yref: "paper", x0: canada[metric], x1: canada[metric], y0: 0, y1: 1, line: { color: t.ink2, width: 1 } }],
+      annotations: canada[metric] == null ? [] : [{ x: canada[metric], y: 1, xref: "x", yref: "paper", yanchor: "bottom",
+        text: `Canada ${App.num(canada[metric], d)}${m.unit}`, showarrow: false, font: { size: 11, color: t.ink2 } }] },
+  }), () => ({ head: ["Province", `${m.label}`], rows: [...rows].reverse().map((r) => [r.geo, App.num(r[metric], d)]) }));
+}
+
+function multiples() {
+  const provs = data.scorecard.filter((r) => r.geo_level === "province").map((r) => r.geo);
+  const ca = data.unemployment.Canada;
+  const all = provs.flatMap((p) => data.unemployment[p].v).concat(ca.v).filter((v) => v != null);
+  const ymax = Math.ceil(Math.max(...all)), ymin = Math.floor(Math.min(...all));
+  const narrow = window.innerWidth < 700;
+  const cols = narrow ? 2 : 5, rowsN = Math.ceil(provs.length / cols);
+  // Phones get 2 columns and taller rows so panel titles clear the axis labels above them.
+  document.getElementById("multiples").style.height = `${rowsN * (narrow ? 190 : 260)}px`;
+  App.chart("multiples", (t) => {
+    const traces = [], layout = { grid: { rows: rowsN, columns: cols, pattern: "independent", xgap: 0.06, ygap: narrow ? 0.4 : 0.25 },
+      hovermode: "x unified", annotations: [], margin: { t: 18, b: 28 } };
+    provs.forEach((p, i) => {
+      const n = i === 0 ? "" : i + 1, s = data.unemployment[p];
+      traces.push({ x: App.dates(ca.month), y: ca.v, xaxis: "x" + n, yaxis: "y" + n, type: "scatter", mode: "lines",
+        line: { color: t.neutral, width: 1.5 }, name: "Canada", hovertemplate: "%{y:.1f}%<extra>Canada</extra>" });
+      traces.push({ x: App.dates(s.month), y: s.v, xaxis: "x" + n, yaxis: "y" + n, type: "scatter", mode: "lines",
+        line: { color: t.s1, width: 2 }, name: p, hovertemplate: `%{y:.1f}%<extra>${p}</extra>` });
+      layout["xaxis" + n] = { type: "date", showgrid: false, linecolor: t.axis, tickfont: { color: t.muted, size: 10 },
+        nticks: 3, tickformat: "%Y", hoverformat: "%b %Y" };
+      layout["yaxis" + n] = { range: [ymin, ymax], gridcolor: t.grid, tickfont: { color: t.muted, size: 10 }, ticksuffix: "%",
+        showticklabels: i % cols === 0 };
+      const code = data.scorecard.find((r) => r.geo === p).province_code;
+      layout.annotations.push({ text: `<b>${narrow ? code : p}</b>`, xref: `x${n} domain`, yref: `y${n} domain`, x: 0, y: 1.02,
+        xanchor: "left", yanchor: "bottom", showarrow: false, font: { size: 11, color: t.ink } });
+    });
+    return { data: traces, layout };
+  }, () => ({ head: ["Month", "Canada", ...provs],
+    rows: ca.month.map((m, i) => [App.month(m), App.num(ca.v[i]), ...provs.map((p) => {
+      const s = data.unemployment[p]; return App.num(s.v[s.month.indexOf(m)]); })]).reverse() }));
+}
+
+(async () => {
+  try {
+    data = await App.json("provinces");
+    scorecard();
+    const sel = document.getElementById("metric");
+    sel.innerHTML = Object.entries(METRICS).map(([k, m]) => `<option value="${k}">${m.label}</option>`).join("");
+    sel.addEventListener("change", () => { metric = sel.value; metricChart(); });
+    metricChart();
+    multiples();
+  } catch (err) { App.fail(err); }
+})();
+</script>
+</body>
+</html>

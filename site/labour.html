@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Labour market</title>
+  <meta name="description" content="Unemployment, employment changes and job vacancies by province, with StatCan's own sampling error.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/plotly.min.js"></script>
+  <script src="assets/app.js"></script>
+</head>
+<body>
+<header id="top"></header>
+<main>
+  <div class="page-head">
+    <div class="eyebrow">Labour</div>
+    <h1>Jobs and unemployment</h1>
+    <p>Labour Force Survey, seasonally adjusted. A monthly move only counts as real when it is larger than
+      StatCan's own margin of error (95% confidence). It is a sample survey, so small monthly moves are often noise.</p>
+  </div>
+
+  <div class="filters">
+    <label>Geography <select id="geo"></select></label>
+    <label>Period
+      <span class="seg" id="range">
+        <button type="button" data-years="5" aria-pressed="true">5 years</button>
+        <button type="button" data-years="10" aria-pressed="false">10 years</button>
+        <button type="button" data-years="0" aria-pressed="false">Since 2000</button>
+      </span>
+    </label>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h2 id="ur-title">Unemployment rate</h2>
+      <p class="sub">Ages 15 and over, %.</p>
+      <div class="chart" id="ur" role="img" aria-label="Unemployment rate over time"></div>
+    </div>
+    <div class="card">
+      <h2>Monthly change in employment</h2>
+      <p class="sub">Thousands of jobs. <b>Solid</b>: larger than the margin of error. <b>Grey</b>: within sampling noise.</p>
+      <div class="chart" id="emp" role="img" aria-label="Monthly employment change, significant months highlighted"></div>
+    </div>
+    <div class="card">
+      <h2>Unemployment by age</h2>
+      <p class="sub">%. Youth unemployment moves first and furthest in a downturn.</p>
+      <div class="chart" id="ages" role="img" aria-label="Unemployment rate by age group"></div>
+    </div>
+    <div class="card">
+      <h2>Unemployed people per job vacancy</h2>
+      <p class="sub">Higher means a harder market for job seekers. Not seasonally adjusted; vacancy data start in 2015.
+        Months StatCan grades E or F (low reliability) are left out.</p>
+      <div class="chart" id="ratio" role="img" aria-label="Unemployed people per job vacancy"></div>
+    </div>
+  </div>
+</main>
+<footer id="foot"></footer>
+
+<script>
+App.init();
+let data, geo = "Canada", years = 5;
+
+function since(cols, key) {
+  if (!years) return cols;
+  const last = cols.month[cols.month.length - 1];
+  const start = `${+last.slice(0, 4) - years}${last.slice(4)}`;
+  const i = cols.month.findIndex((m) => m >= start);
+  const out = {};
+  for (const k of Object.keys(cols)) out[k] = cols[k].slice(i);
+  return out;
+}
+
+function render() {
+  const s = data.series[geo];
+  const h = since(s.headline);
+  const a = since(s.ages);
+  const j = s.jobs;
+  const latest = s.headline.month.length - 1;
+  document.getElementById("ur-title").textContent =
+    `Unemployment rate, ${geo}: ${App.num(s.headline.ur[latest])}% in ${App.month(s.headline.month[latest])}`;
+
+  App.chart("ur", (t) => ({
+    data: [{ x: App.dates(h.month), y: h.ur, type: "scatter", mode: "lines", name: "Unemployment rate",
+      line: { color: t.s1, width: 2 },
+      customdata: h.ur_mom.map((c, i) => [c, h.ur_sig[i] == null ? "no error data" : h.ur_sig[i] ? "significant" : "within noise"]),
+      hovertemplate: "%{y:.1f}% (%{customdata[0]:+.1f} pts, %{customdata[1]})<extra></extra>" }],
+    layout: { yaxis: { ticksuffix: "%" } },
+  }), () => ({ head: ["Month", "Rate (%)", "Change (pts)", "Significant?"],
+    rows: h.month.map((m, i) => [App.month(m), App.num(h.ur[i]), App.signed(h.ur_mom[i]),
+      h.ur_sig[i] == null ? "n/a" : h.ur_sig[i] ? "yes" : "no"]).reverse() }));
+
+  App.chart("emp", (t) => ({
+    data: [{ x: App.dates(h.month), y: h.emp_mom, type: "bar", name: "Employment change",
+      marker: { color: h.emp_sig.map((sig, i) => !sig ? t.neutral : h.emp_mom[i] < 0 ? t.neg : t.pos) },
+      customdata: h.emp_sig.map((sig) => sig == null ? "no error data" : sig ? "significant" : "within noise"),
+      hovertemplate: "%{y:+,.1f}k jobs (%{customdata})<extra></extra>" }],
+    layout: { bargap: 0.2, yaxis: { ticksuffix: "k", zeroline: true } },
+  }), () => ({ head: ["Month", "Change (thousands)", "Significant?"],
+    rows: h.month.map((m, i) => [App.month(m), App.signed(h.emp_mom[i]), h.emp_sig[i] == null ? "n/a" : h.emp_sig[i] ? "yes" : "no"]).reverse() }));
+
+  const ageSeries = [["youth", "15 to 24", "s1"], ["core", "25 to 54", "s2"], ["older", "55 and over", "s3"]];
+  App.chart("ages", (t) => ({
+    data: ageSeries.map(([k, label, c]) => ({ x: App.dates(a.month), y: a[k], type: "scatter", mode: "lines",
+      name: label, line: { color: t[c], width: 2 }, hovertemplate: `%{y:.1f}%<extra>${label}</extra>` })),
+    layout: { showlegend: true, yaxis: { ticksuffix: "%" } },
+  }), () => ({ head: ["Month", "15 to 24 (%)", "25 to 54 (%)", "55+ (%)"],
+    rows: a.month.map((m, i) => [App.month(m), App.num(a.youth[i]), App.num(a.core[i]), App.num(a.older[i])]).reverse() }));
+
+  const hasRatio = j.month.length && j.unemployed_per_vacancy.some((v) => v != null);
+  App.chart("ratio", (t) => ({
+    data: hasRatio ? [{ x: App.dates(j.month), y: j.unemployed_per_vacancy, type: "scatter", mode: "lines",
+      name: "Unemployed per vacancy", connectgaps: false, line: { color: t.s1, width: 2 },
+      customdata: j.grade, hovertemplate: "%{y:.2f} per vacancy (grade %{customdata})<extra></extra>" }] : [],
+    layout: hasRatio ? {} : { annotations: [{ text: "Not available for this geography", showarrow: false,
+      xref: "paper", yref: "paper", x: 0.5, y: 0.5, font: { color: t.muted } }], xaxis: { visible: false }, yaxis: { visible: false } },
+  }), () => ({ head: ["Month", "Unemployed per vacancy", "Vacancy rate (%)", "Quality grade"],
+    rows: j.month.map((m, i) => [App.month(m), App.num(j.unemployed_per_vacancy[i], 2), App.num(j.job_vacancy_rate[i]), j.grade[i]]).reverse() }));
+}
+
+(async () => {
+  try {
+    data = await App.json("labour");
+    App.geoSelect("geo", data.geos, geo, (g) => { geo = g; render(); });
+    document.querySelectorAll("#range button").forEach((b) => b.addEventListener("click", () => {
+      document.querySelectorAll("#range button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+      years = +b.dataset.years; render();
+    }));
+    render();
+  } catch (err) { App.fail(err); }
+})();
+</script>
+</body>
+</html>

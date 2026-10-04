@@ -49,7 +49,7 @@ NOT_NULL = {
     "dim_geo": ["geo", "geo_level"],
     "stg_lfs": ["month", "geo", "estimate"],
     "stg_cpi": ["month", "geo", "product", "index_value", "index_base"],
-    "stg_nhpi": ["month", "geo", "index_value"],
+    "stg_nhpi": ["month", "geo", "index_value", "use_with_caution"],
     "stg_gdp": ["month", "naics_code", "gdp_millions"],
     "mart_province_scorecard": ["labour_month", "unemployment_rate", "cpi_month", "cpi_yoy_pct"],
 }
