@@ -42,5 +42,7 @@ jobs:
         run: python -m src.ingest
       - name: Build warehouse
         run: python -m src.build
+      - name: Forecasts and backtest
+        run: python -m src.forecast
       - name: Data tests
         run: python -m src.data_tests

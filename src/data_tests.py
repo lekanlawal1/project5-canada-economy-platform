@@ -41,6 +41,7 @@ UNIQUE_KEYS = {
     "mart_job_market_monthly": ["month", "geo"],
     "mart_gdp_monthly": ["month", "naics_code"],
     "mart_province_scorecard": ["geo"],
+    "forecast_latest": ["series", "horizon"],
 }
 
 # Columns that must never be NULL. Value columns are included where staging promises a value.
@@ -89,6 +90,10 @@ RULES = [
     ("Latest CPI month has all 11 geographies for all-items",
      "SELECT 11 - count(*) FROM mart_cpi_monthly WHERE product = 'All-items' "
      "AND month = (SELECT max(month) FROM mart_cpi_monthly)"),
+    ("Published forecast has 2 targets x 3 horizons, each with an ordered 80% range",
+     "SELECT abs(count(*) - 6) + count(*) FILTER (WHERE low_80 > high_80) FROM forecast_latest"),
+    ("Every forecast method was scored at every horizon in the backtest",
+     "SELECT 2 * 3 * 5 - count(*) FROM forecast_scores"),
     # The 2% sum check below cannot see a missing small sector (management of companies is
     # 0.02% of GDP), so sector presence is checked by count as well.
     ("Latest GDP month has all 20 two-digit sectors",
