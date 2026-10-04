@@ -1,0 +1,47 @@
+{
+  "14100287": {
+    "csv_bytes": 1180022898,
+    "downloaded_at": "2026-10-04T20:03:03+00:00",
+    "etag": "\"39a3bb5-65aa77aa7c184\"",
+    "last_modified": "Fri, 04 Sep 2026 12:33:44 GMT",
+    "url": "https://www150.statcan.gc.ca/n1/tbl/csv/14100287-eng.zip",
+    "zip_bytes": 60439477,
+    "zip_sha256": "7174a1ce0be0bc829b16c479b4e9b6231c8a3dfb171c57916ced06e099b151f7"
+  },
+  "14100371": {
+    "csv_bytes": 690694,
+    "downloaded_at": "2026-10-04T20:03:06+00:00",
+    "etag": "\"b0b7-65c39c4ce631d\"",
+    "last_modified": "Thu, 24 Sep 2026 12:30:45 GMT",
+    "url": "https://www150.statcan.gc.ca/n1/tbl/csv/14100371-eng.zip",
+    "zip_bytes": 45239,
+    "zip_sha256": "d12326104eb2d548e4e4a39b44032787f392192777bd8622d8294bfb51e14437"
+  },
+  "18100004": {
+    "csv_bytes": 161013600,
+    "downloaded_at": "2026-10-04T20:03:05+00:00",
+    "etag": "\"e9949f-65b84b73938e6\"",
+    "last_modified": "Tue, 15 Sep 2026 12:30:28 GMT",
+    "url": "https://www150.statcan.gc.ca/n1/tbl/csv/18100004-eng.zip",
+    "zip_bytes": 15307935,
+    "zip_sha256": "3840c1810061b79035a9153dbc9189fed4ced6aaacdeddb86b13579b51f1c6d2"
+  },
+  "18100205": {
+    "csv_bytes": 9380835,
+    "downloaded_at": "2026-10-04T20:03:06+00:00",
+    "etag": "\"56d9e-65bacf2ba617e\"",
+    "last_modified": "Thu, 17 Sep 2026 12:30:25 GMT",
+    "url": "https://www150.statcan.gc.ca/n1/tbl/csv/18100205-eng.zip",
+    "zip_bytes": 355742,
+    "zip_sha256": "1484916d7ea8e0717d7665e2d9431684e876af722262ba97892ec9074d606a6f"
+  },
+  "36100434": {
+    "csv_bytes": 56718646,
+    "downloaded_at": "2026-10-04T20:03:07+00:00",
+    "etag": "\"67989e-65c9e5a1be65c\"",
+    "last_modified": "Tue, 29 Sep 2026 12:30:46 GMT",
+    "url": "https://www150.statcan.gc.ca/n1/tbl/csv/36100434-eng.zip",
+    "zip_bytes": 6789278,
+    "zip_sha256": "eb8c55f91a795da41692b7534eccf2c2f85f9fb4c2c4bd6aa4f66db84e6aad87"
+  }
+}
