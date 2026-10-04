@@ -1,0 +1,44 @@
+name: CI
+
+# Runs on every push and pull request. Two jobs:
+#   unit-tests: offline, seconds. Proves the code and SQL logic on hand-made data.
+#   data-tests: downloads the real StatCan tables, builds the warehouse and runs the data
+#               tests. Proves the live data still fits our assumptions.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+
+  data-tests:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Download StatCan tables
+        run: python -m src.ingest
+      - name: Build warehouse
+        run: python -m src.build
+      - name: Data tests
+        run: python -m src.data_tests
