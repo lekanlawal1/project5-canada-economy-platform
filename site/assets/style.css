@@ -209,6 +209,16 @@ footer a { color: var(--ink-2); }
   .tile .value { font-size: 28px; }
   .chart { height: 280px; }
   .chart.tall { height: 360px; }
-  .nav { margin-left: 0; }
+  /* Phones: brand and theme button share row one; page links become one swipeable row.
+     The header stops being sticky so it never covers a fifth of a small screen. */
+  .top { position: static; }
+  .top-inner { gap: 6px 12px; padding-top: 8px; padding-bottom: 6px; }
+  .theme-btn { order: 2; margin-left: auto; padding: 4px 8px; }
+  .brand { font-size: 14px; gap: 8px; }
+  .nav { order: 3; width: 100%; margin: 0 -16px; padding: 0 16px; flex-wrap: nowrap; overflow-x: auto;
+         scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { white-space: nowrap; }
 }
+@media (max-width: 380px) { .brand-long { display: none; } }
 @media print { .top, .filters, details.data, .theme-btn { display: none; } }

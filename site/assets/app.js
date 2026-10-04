@@ -119,7 +119,9 @@ const App = (() => {
     else document.documentElement.removeAttribute("data-theme");
     try { theme ? localStorage.setItem("theme", theme) : localStorage.removeItem("theme"); } catch { /* private mode */ }
     const btn = document.querySelector(".theme-btn");
-    if (btn) btn.textContent = currentTheme() === "dark" ? "Light mode" : "Dark mode";
+    // Short labels on phones so the button fits beside the brand.
+    const short = matchMedia("(max-width: 560px)").matches;
+    if (btn) btn.textContent = (currentTheme() === "dark" ? "Light" : "Dark") + (short ? "" : " mode");
     redrawAll();
   }
   const currentTheme = () => document.documentElement.getAttribute("data-theme") ||
@@ -134,13 +136,17 @@ const App = (() => {
       <a class="brand" href="index.html">
         <svg class="brand-mark" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="5" fill="var(--accent)"/>
           <path d="M5 15l4-4 3 3 5-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Canada Economy Intelligence</a>
+        <span>Canada Economy<span class="brand-long"> Intelligence</span></span></a>
       <nav class="nav" aria-label="Pages">${PAGES.map(([href, label]) =>
         `<a href="${href}"${href === here ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>
       <button class="theme-btn" type="button"></button></div>`;
     el.querySelector(".theme-btn").addEventListener("click", () =>
       applyTheme(currentTheme() === "dark" ? "light" : "dark"));
     applyTheme(storedTheme());
+    // On phones the nav is a swipeable row: bring the current page's link into view.
+    const active = el.querySelector('.nav a[aria-current="page"]');
+    const nav = el.querySelector(".nav");
+    if (active && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = active.offsetLeft - 16;
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
   }
 
