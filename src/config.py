@@ -22,5 +22,17 @@ TABLES = {
 }
 
 
+SQL_DIR = ROOT / "sql"
+
+# Which raw-layer SQL file slices which downloaded table.
+RAW_MODELS = {
+    "raw_lfs": ("14100287", "raw/01_raw_lfs.sql"),
+    "raw_cpi": ("18100004", "raw/02_raw_cpi.sql"),
+    "raw_nhpi": ("18100205", "raw/03_raw_nhpi.sql"),
+    "raw_job_vacancies": ("14100371", "raw/04_raw_job_vacancies.sql"),
+    "raw_gdp": ("36100434", "raw/05_raw_gdp.sql"),
+}
+
+
 def table_url(pid: str) -> str:
     return URL_PATTERN.format(pid=pid)
