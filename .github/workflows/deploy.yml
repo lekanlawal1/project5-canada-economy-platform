@@ -81,8 +81,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Commit only when StatCan's data really changed. The manifest is untouched when the
+          # downloaded bytes match the recorded hash, so code-only runs commit nothing.
+          if git diff --quiet data/manifest.json; then echo "No new StatCan data: nothing to commit."; exit 0; fi
           git add data/manifest.json data/row_counts.json docs/decision_log.md docs/forecast_results.md
-          if git diff --cached --quiet; then echo "Nothing to commit."; exit 0; fi
           # Parse the HTTP dates: compared as strings, "Tue, 29 Sep" sorts before "Thu, 24 Sep".
           latest=$(python -c "import json, email.utils as e; m=json.load(open('data/manifest.json')); print(max(e.parsedate_to_datetime(v['last_modified']) for v in m.values()).strftime('%Y-%m-%d'))")
           git commit -m "Data refresh: StatCan tables published up to ${latest}"

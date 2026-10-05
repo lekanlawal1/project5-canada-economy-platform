@@ -122,3 +122,14 @@ def test_check_mode_exit_codes_drive_the_scheduler(server, tmp_path, monkeypatch
     assert ingest.run(check_only=True, tables=tables) == 1
     monkeypatch.setattr(ingest, "table_url", lambda pid: "http://127.0.0.1:9/unreachable.zip")
     assert ingest.run(check_only=True, tables=tables) == 2
+
+
+def test_identical_redownload_leaves_the_manifest_untouched(server, session, tmp_path):
+    """A fresh runner re-fetches unchanged data; the committed manifest must not change."""
+    serve_dir, base = server
+    write_zip(serve_dir, "REF_DATE,VALUE\n2026-01,1.0\n", 1_700_000_000)
+    manifest, url = {}, f"{base}/{PID}-eng.zip"
+    ingest.fetch_table(PID, manifest, session, url=url, raw_dir=tmp_path / "a")
+    before = dict(manifest[PID])
+    ingest.fetch_table(PID, manifest, session, url=url, raw_dir=tmp_path / "b")  # empty dir: re-downloads
+    assert manifest[PID] == before
