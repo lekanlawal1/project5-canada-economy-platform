@@ -227,7 +227,7 @@ def user_prompt(described: list[dict], feedback: list[Finding] | None = None) ->
 
 def tidy(text: str) -> str:
     # House style: no em or en dashes. Replaced, not rejected: punctuation cannot change a number.
-    return text.replace(" — ", ", ").replace("—", ", ").replace(" – ", ", ").replace("–", " to ")
+    return text.replace(" \u2014 ", ", ").replace("\u2014", ", ").replace(" \u2013 ", ", ").replace("\u2013", " to ")
 
 
 def to_html(text: str) -> str:
