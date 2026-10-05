@@ -28,6 +28,7 @@
         <button type="button" data-level="metro" aria-pressed="false">Metro areas</button>
       </span>
     </label>
+    <div class="range" id="range"></div>
   </div>
 
   <div class="grid grid-2">
@@ -38,7 +39,7 @@
     </div>
     <div class="card">
       <h2 id="trend-title">Over time</h2>
-      <p class="sub">12-month change, %, since 2000.</p>
+      <p class="sub">12-month change, %, for the period chosen above. (The ranking on the left is always the latest month.)</p>
       <div class="chart tall" id="trend" role="img" aria-label="New home price change over time"></div>
     </div>
   </div>
@@ -47,7 +48,7 @@
 
 <script>
 App.init();
-let data, geo = "Ontario", level = "province";
+let data, range, geo = "Ontario", level = "province";
 
 function render() {
   const rows = data.latest.filter((r) => r.geo_level === level).sort((a, b) => a.yoy_pct - b.yoy_pct);
@@ -69,7 +70,8 @@ function render() {
   }), () => ({ head: ["Geography", "12-month change (%)", "Use with caution?"],
     rows: [...rows].reverse().map((r) => [r.geo, App.signed(r.yoy_pct), r.use_with_caution ? "yes" : "no"]) }));
 
-  const a = data.series.Canada, b = data.series[geo];
+  const r = range.get();
+  const a = App.sliceRange(data.series.Canada, r), b = App.sliceRange(data.series[geo], r);
   document.getElementById("trend-title").textContent = `${geo} vs Canada`;
   App.chart("trend", (t) => ({
     data: [
@@ -86,7 +88,15 @@ function render() {
 (async () => {
   try {
     data = await App.json("housing");
-    App.geoSelect("geo", data.geos.filter((g) => g !== "Canada"), geo, (g) => { geo = g; render(); });
+    // Earliest month: the first month where either line has a 12-month change to show.
+    const bounds = () => {
+      const firsts = [data.series.Canada, data.series[geo]].map((c) => c.month[c.v.findIndex((v) => v != null)]);
+      const m = data.series.Canada.month;
+      range.setBounds(firsts.sort()[0], m[m.length - 1]);
+    };
+    range = App.rangeControl("range", render);
+    App.geoSelect("geo", data.geos.filter((g) => g !== "Canada"), geo, (g) => { geo = g; bounds(); render(); });
+    bounds();
     document.querySelectorAll("#level button").forEach((btn) => btn.addEventListener("click", () => {
       document.querySelectorAll("#level button").forEach((x) => x.setAttribute("aria-pressed", x === btn));
       level = btn.dataset.level; render();

@@ -60,6 +60,28 @@ file as every other dependency, and the site works even if a CDN is down or bloc
 - Every chart has a "Show data table" twin, so no value is reachable only by hovering.
 - Light and dark modes are designed separately; dark is not an automatic inversion.
 
+## Date range control
+
+Labour, Prices and Housing share one control (`App.rangeControl` in `site/assets/app.js`):
+presets for 1, 5, 10 and 20 years and All, plus Custom with Month and Year dropdowns.
+
+- **Full history.** The export no longer stops at 2000: labour data go back to January 1976,
+  Canada's inflation to 1915, provincial inflation to 1979 and new housing prices to 1982. The
+  data files grew from about 0.7 MB to 1.3 MB, but GitHub Pages compresses them: the largest,
+  labour, transfers as about 77 KB.
+- **Month and Year dropdowns, not the browser's month picker,** which looks different in every
+  browser and is missing in some. Dropdowns behave the same on desktop, iPhone and iPad.
+- **The earliest month follows the geography and the measure:** the first month with an actual
+  value to show (Canada's CPI index starts in 1914, but its 12-month change only in 1915).
+  Months outside the data are disabled, a "From" after the "To" is swapped, and a line under the
+  control always states exactly which months are shown.
+- **Shareable.** The choice is kept in the URL (`labour.html?from=2019-01&to=2021-12`), so a
+  specific period such as the pandemic can be linked directly.
+- **A fix the longer history forced:** before 2001 StatCan published no margin of error, so
+  those monthly employment changes cannot be tested. They used to be drawn grey, which means
+  "within noise", a claim the data cannot support. They are now drawn faded in their up or down
+  colour and the chart says "not tested".
+
 ## Tested in a real browser
 
 Every page was rendered in headless Chromium at 1280 px (light) and 390 px (dark, phone) and
