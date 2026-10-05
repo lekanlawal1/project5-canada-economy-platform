@@ -15,7 +15,8 @@ and only downloads when it did. Decisions:
 
 Usage:
     python -m src.ingest            download whatever changed
-    python -m src.ingest --check    report changes only, exit code 1 if anything changed
+    python -m src.ingest --check    report changes only: exit 1 if anything changed, 0 if not,
+                                    2 if StatCan could not be reached
 """
 
 from __future__ import annotations
@@ -149,7 +150,12 @@ def run(check_only: bool = False, tables: dict = TABLES) -> int:
     session.headers["User-Agent"] = "project5-canada-economy-platform (portfolio project)"
 
     if check_only:
-        changed = [pid for pid in tables if has_changed(pid, manifest.get(pid), table_url(pid), session)]
+        try:
+            changed = [pid for pid in tables if has_changed(pid, manifest.get(pid), table_url(pid), session)]
+        except requests.RequestException as err:
+            # Exit 2, not 1: the scheduler reads 1 as "data changed", and a network error is not that.
+            print(f"check failed: {err}", file=sys.stderr)
+            return 2
         for pid in tables:
             print(f"{pid}: {'CHANGED' if pid in changed else 'unchanged'}")
         return 1 if changed else 0
