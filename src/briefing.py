@@ -58,7 +58,7 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
     facts, described, years = [], [], set()
 
     def add(key, value, decimals, keywords, description, month, is_change=False, display=None,
-            scale_forms=None, requires=None, note=None, place=None):
+            scale_forms=None, requires=None, note=None, place=None, unit="%"):
         if value is None:
             return
         # Rounding can leave -0.0, which formats as "-0.00". The model copies it faithfully and
@@ -66,8 +66,18 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
         value = 0.0 if float(value) == 0 else float(value)
         facts.append(Fact(key, float(value), decimals, keywords, is_change, scale_forms or [], requires or []))
         years.add(month.year)
+        # The model copies what it is shown, so show it the finished wording: units always, and
+        # changes as a direction plus an unsigned size. The first live run, given bare signed
+        # numbers, wrote "the unemployment rate was 6.4" and "fell by -0.7".
+        if display is None:
+            if not is_change:
+                display = f"{value:.{decimals}f}{unit}"
+            elif value == 0:
+                display = f"unchanged ({value:.{decimals}f}{unit})"
+            else:
+                display = f"{'up' if value > 0 else 'down'} {abs(value):.{decimals}f}{unit}"
         described.append({"key": key, "description": description, "month": month_name(month),
-                          "value": display or f"{value:.{decimals}f}", **({"note": note} if note else {}),
+                          "value": display, "number": value, **({"note": note} if note else {}),
                           **({"place": place} if place else {})})
 
     lab = one(f"""SELECT month, unemployment_rate, unemployment_rate_mom_pp, unemployment_rate_mom_significant,
@@ -78,11 +88,11 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
         "NOT statistically significant (within StatCan's margin of error)"
     add("unemployment_rate", ur, 1, ["unemploy"], "Canada unemployment rate, %, seasonally adjusted", m)
     add("unemployment_rate_change_month", ur_mom, 1, ["unemploy"], "Change in unemployment rate from previous month, percentage points",
-        m, True, note=sig(ur_mom_sig))
+        m, True, note=sig(ur_mom_sig), unit=" percentage points")
     add("unemployment_rate_change_year", ur_yoy, 1, ["unemploy"], "Change in unemployment rate from a year earlier, percentage points",
-        m, True, note=sig(ur_yoy_sig))
+        m, True, note=sig(ur_yoy_sig), unit=" percentage points")
     add("employment_change_month", emp, 1, ["employment", "jobs", "job"], "Change in employment from previous month, thousands of people",
-        m, True, display=f"{emp:+.1f} thousand ({emp * 1000:+,.0f} people)", scale_forms=[emp * 1000], note=sig(emp_sig))
+        m, True, display=f"{'up' if emp > 0 else 'down' if emp < 0 else 'unchanged'} {abs(emp):.1f} thousand ({abs(emp) * 1000:,.0f} people)", scale_forms=[emp * 1000], note=sig(emp_sig))
 
     hi = one(f"""SELECT geo, unemployment_rate FROM mart_province_scorecard WHERE geo_level = 'province'
         ORDER BY unemployment_rate DESC LIMIT 1""")
@@ -109,7 +119,7 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
 
     for product, key, words in (("Gasoline", "gasoline_inflation", ["gasoline", "gas prices"]),
                                 ("Shelter", "shelter_inflation", ["shelter"]),
-                                ("Food purchased from stores", "grocery_inflation", ["grocer", "food purchased"])):
+                                ("Food purchased from stores", "grocery_inflation", ["grocer", "food purchased", "food from stores"])):
         r = one("""SELECT month, yoy_pct FROM mart_cpi_monthly WHERE geo = 'Canada' AND product = ?
             ORDER BY month DESC LIMIT 1""", [product])
         add(key, r[1], 1, words, f"{product} prices, 12-month % change", r[0], True)
@@ -125,7 +135,7 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
     j = one("""SELECT month, job_vacancy_rate, unemployed_per_vacancy FROM mart_job_market_monthly
         WHERE geo = 'Canada' ORDER BY month DESC LIMIT 1""")
     add("job_vacancy_rate", j[1], 1, ["vacanc"], "Job vacancy rate, %", j[0])
-    add("unemployed_per_vacancy", j[2], 2, ["vacanc", "per job", "per opening"], "Unemployed people per job vacancy", j[0])
+    add("unemployed_per_vacancy", j[2], 2, ["vacanc", "per job", "per opening"], "Unemployed people per job vacancy", j[0], unit="")
 
     g = one("""SELECT month, mom_pct, yoy_pct FROM mart_gdp_monthly WHERE naics_code = 'T001' ORDER BY month DESC LIMIT 1""")
     gdp = ["gdp", "gross domestic product", "output", "economy"]
@@ -154,7 +164,7 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
 def template_briefing(d: dict) -> str:
     """Deterministic briefing from the same facts. Used when the AI draft cannot be verified."""
     f = {x["key"]: x for x in d}
-    v = lambda k: float(f[k]["value"].split()[0])
+    v = lambda k: float(f[k]["number"])
     move = lambda x, up, down, flat: up if x > 0 else down if x < 0 else flat
     ur_mom = v("unemployment_rate_change_month")
     emp = v("employment_change_month")
@@ -186,12 +196,15 @@ def template_briefing(d: dict) -> str:
 SYSTEM = """You write the monthly briefing for a public dashboard about Canada's economy.
 
 Rules, all mandatory:
-- Use ONLY numbers that appear in the FACTS list, written exactly as given (same decimals).
-  No other numbers at all: no dates except month names with their year, no invented figures,
-  no calculations of your own.
-- Every number must be in the same sentence as words naming what it measures (for example
-  "unemployment", "inflation", "GDP", or the province name together with the measure).
-- Describe changes with the right direction: a negative change "fell", a positive change "rose".
+- Use ONLY numbers that appear in the FACTS "value" fields, with their units, written exactly
+  as given (same decimals). No other numbers at all: no dates except month names with their
+  year, no invented figures, no calculations of your own.
+- Name the measure in every sentence that contains a number ("the unemployment rate", "core
+  inflation", "real GDP", or the province name together with the measure). Never "the rate"
+  or "it" on its own: each sentence is checked on its own.
+- One measure per sentence where you can.
+- Changes are given as a direction and a size ("down 0.7 percentage points"). Write them with
+  a direction word and the size ("fell 0.7 percentage points"). Never use a minus sign.
 - Where a fact's note says a change is NOT statistically significant, say it is within the
   survey's margin of error. Do not call it a rise or fall in the headline sense.
 - Neutral, plain English for a general reader. No advice, no predictions beyond the forecast

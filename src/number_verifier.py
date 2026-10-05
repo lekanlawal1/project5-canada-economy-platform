@@ -85,6 +85,29 @@ def _parse(raw: str) -> float:
     return float(raw.replace(",", ""))
 
 
+CLAUSE_BREAK = re.compile(r",|;|\b(and|but|though|although|while|whereas)\b", re.I)
+
+
+def direction_window(sentence: str, matches: list, i: int) -> str:
+    """The words that can describe the direction of number i, and no others.
+
+    Before the number: up to 6 words, but never reaching back past the previous number.
+    After it: up to 30 characters, stopping at the next number or a clause break.
+    Found in live runs: "a change of 0.00 and rose 1.4" was read as describing 0.00 as a
+    rise, because "rose" belongs to the next number. Bounding the window fixed 9 of 12
+    false alarms.
+    """
+    m = matches[i]
+    start = matches[i - 1].end() if i > 0 else 0
+    end = matches[i + 1].start() if i + 1 < len(matches) else len(sentence)
+    before = " ".join(sentence[start: m.start()].split()[-6:])
+    after = sentence[m.end(): min(end, m.end() + 30)]
+    cut = CLAUSE_BREAK.search(after)
+    if cut:
+        after = after[: cut.start()]
+    return before + " " + after
+
+
 def verify(text: str, facts: list[Fact], allowed_years: set[int] | None = None,
            context_numbers: dict[float, list[str]] | None = None) -> list[Finding]:
     """Return one Finding per number in the text."""
@@ -92,11 +115,11 @@ def verify(text: str, facts: list[Fact], allowed_years: set[int] | None = None,
     context_numbers = context_numbers or {}
     findings = []
     for sentence in SENTENCE.split(text.strip()):
-        for m in NUMBER.finditer(sentence):
+        matches = list(NUMBER.finditer(sentence))
+        for i, m in enumerate(matches):
             raw = m.group(2)
             x = _parse(raw)
-            # The words just before the number decide its direction ("fell 0.7", "down 0.7").
-            window = " ".join(sentence[: m.start()].split()[-6:]) + " " + sentence[m.end(): m.end() + 30]
+            window = direction_window(sentence, matches, i)
             # An explicit sign is a direction claim too: "-0.7" must not stand for a rise.
             if m.group(1) in ("-", "−"):
                 window += " down"
