@@ -90,6 +90,17 @@ worker's maths library also spawned threads, and they fought over 4 cores. A pla
 finishes in 95 seconds, so the parallelism was removed. The first version also held the
 database write lock for the whole run; it now reads, closes, computes, then writes.
 
+## Reproducibility
+
+The decisions reproduce exactly; the third decimal does not. The same code, the same data and
+identical package versions (statsmodels 0.15.0, numpy 2.4.6, scipy 1.17.1) gave slightly
+different scores on this development machine and on GitHub's runner: the CPI 1-month model's
+improvement was 19.2% in one and 19.7% in the other, and a 3-month p-value 0.100 versus 0.091.
+The cause is the model fitting itself: the optimiser stops at very slightly different points
+on different processors. Every published decision was identical on both machines, and the
+figures quoted in these docs are rounded accordingly. The latest exact numbers are always in
+the generated [forecast_results.md](forecast_results.md).
+
 ## Honest limits
 
 - **Today's data, not real-time data.** Seasonally adjusted LFS history is revised, so

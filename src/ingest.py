@@ -132,6 +132,10 @@ def fetch_table(
     # The zip is only a transport container; keeping it would double disk use for LFS.
     zip_path.unlink()
 
+    # Same bytes as the recorded download (e.g. a fresh CI runner re-fetching unchanged data):
+    # keep the existing entry, so the committed manifest only changes when StatCan's data does.
+    if entry and entry.get("zip_sha256") == sha.hexdigest():
+        return "downloaded"
     manifest[pid] = {
         "url": url,
         "last_modified": last_modified,
