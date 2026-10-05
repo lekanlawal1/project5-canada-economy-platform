@@ -48,3 +48,5 @@ jobs:
         run: python -m src.data_tests
       - name: Dashboard export still works
         run: python -m src.site_export
+      - name: Template briefing passes its own verifier on fresh data
+        run: python -m src.briefing
