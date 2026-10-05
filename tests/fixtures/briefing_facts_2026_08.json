@@ -177,7 +177,8 @@
    "decimals": 1,
    "keywords": [
     "grocer",
-    "food purchased"
+    "food purchased",
+    "food from stores"
    ],
    "is_change": true,
    "scale_forms": [],
@@ -393,176 +394,204 @@
    "key": "unemployment_rate",
    "description": "Canada unemployment rate, %, seasonally adjusted",
    "month": "August 2026",
-   "value": "6.4"
+   "value": "6.4%",
+   "number": 6.4
   },
   {
    "key": "unemployment_rate_change_month",
    "description": "Change in unemployment rate from previous month, percentage points",
    "month": "August 2026",
-   "value": "0.0",
+   "value": "unchanged (0.0 percentage points)",
+   "number": 0.0,
    "note": "NOT statistically significant (within StatCan's margin of error)"
   },
   {
    "key": "unemployment_rate_change_year",
    "description": "Change in unemployment rate from a year earlier, percentage points",
    "month": "August 2026",
-   "value": "-0.7",
+   "value": "down 0.7 percentage points",
+   "number": -0.7,
    "note": "statistically significant (beyond StatCan's margin of error)"
   },
   {
    "key": "employment_change_month",
    "description": "Change in employment from previous month, thousands of people",
    "month": "August 2026",
-   "value": "-41.7 thousand (-41,700 people)",
+   "value": "down 41.7 thousand (41,700 people)",
+   "number": -41.7,
    "note": "NOT statistically significant (within StatCan's margin of error)"
   },
   {
    "key": "unemployment_highest_province",
    "description": "Highest provincial unemployment rate: Newfoundland and Labrador, %",
    "month": "August 2026",
-   "value": "8.6",
+   "value": "8.6%",
+   "number": 8.6,
    "place": "Newfoundland and Labrador"
   },
   {
    "key": "unemployment_lowest_province",
    "description": "Lowest provincial unemployment rate: Manitoba, %",
    "month": "August 2026",
-   "value": "5.0",
+   "value": "5.0%",
+   "number": 5.0,
    "place": "Manitoba"
   },
   {
    "key": "inflation",
    "description": "Canada CPI inflation, 12-month % change, all-items",
    "month": "August 2026",
-   "value": "3.0"
+   "value": "3.0%",
+   "number": 3.0
   },
   {
    "key": "inflation_previous_month",
    "description": "Canada CPI inflation in the previous month, 12-month %",
    "month": "July 2026",
-   "value": "3.0"
+   "value": "3.0%",
+   "number": 3.0
   },
   {
    "key": "core_inflation",
    "description": "Core inflation (CPI excluding food and energy), 12-month %",
    "month": "August 2026",
-   "value": "2.1"
+   "value": "2.1%",
+   "number": 2.1
   },
   {
    "key": "inflation_highest_province",
    "description": "Highest provincial inflation: Nova Scotia, 12-month %",
    "month": "August 2026",
-   "value": "5.1",
+   "value": "5.1%",
+   "number": 5.1,
    "place": "Nova Scotia"
   },
   {
    "key": "inflation_lowest_province",
    "description": "Lowest provincial inflation: Ontario, 12-month %",
    "month": "August 2026",
-   "value": "2.4",
+   "value": "2.4%",
+   "number": 2.4,
    "place": "Ontario"
   },
   {
    "key": "gasoline_inflation",
    "description": "Gasoline prices, 12-month % change",
    "month": "August 2026",
-   "value": "22.8"
+   "value": "up 22.8%",
+   "number": 22.8
   },
   {
    "key": "shelter_inflation",
    "description": "Shelter prices, 12-month % change",
    "month": "August 2026",
-   "value": "1.5"
+   "value": "up 1.5%",
+   "number": 1.5
   },
   {
    "key": "grocery_inflation",
    "description": "Food purchased from stores prices, 12-month % change",
    "month": "August 2026",
-   "value": "2.8"
+   "value": "up 2.8%",
+   "number": 2.8
   },
   {
    "key": "bank_of_canada_target",
    "description": "Bank of Canada inflation target, %",
    "month": "August 2026",
-   "value": "2"
+   "value": "2%",
+   "number": 2.0
   },
   {
    "key": "bank_of_canada_band_low",
    "description": "Bottom of the Bank of Canada 1 to 3% control range",
    "month": "August 2026",
-   "value": "1"
+   "value": "1%",
+   "number": 1.0
   },
   {
    "key": "bank_of_canada_band_high",
    "description": "Top of the Bank of Canada 1 to 3% control range",
    "month": "August 2026",
-   "value": "3"
+   "value": "3%",
+   "number": 3.0
   },
   {
    "key": "new_home_prices_change_year",
    "description": "New home prices, 12-month % change (New Housing Price Index)",
    "month": "August 2026",
-   "value": "-2.0"
+   "value": "down 2.0%",
+   "number": -2.0
   },
   {
    "key": "job_vacancy_rate",
    "description": "Job vacancy rate, %",
    "month": "July 2026",
-   "value": "2.8"
+   "value": "2.8%",
+   "number": 2.8
   },
   {
    "key": "unemployed_per_vacancy",
    "description": "Unemployed people per job vacancy",
    "month": "July 2026",
-   "value": "3.02"
+   "value": "3.02",
+   "number": 3.02
   },
   {
    "key": "gdp_change_month",
    "description": "Real GDP, % change from previous month",
    "month": "July 2026",
-   "value": "0.00"
+   "value": "unchanged (0.00%)",
+   "number": 0.0
   },
   {
    "key": "gdp_change_year",
    "description": "Real GDP, % change from a year earlier",
    "month": "July 2026",
-   "value": "1.4"
+   "value": "up 1.4%",
+   "number": 1.4
   },
   {
    "key": "cpi_yoy_forecast_next_month",
    "description": "CPI inflation forecast for next month, %, from a seasonal ARIMA model (it beat the naive forecast in backtests)",
    "month": "September 2026",
-   "value": "2.9"
+   "value": "2.9%",
+   "number": 2.87
   },
   {
    "key": "cpi_yoy_forecast_low",
    "description": "Bottom of the 80% forecast range, %",
    "month": "September 2026",
-   "value": "2.5"
+   "value": "2.5%",
+   "number": 2.47
   },
   {
    "key": "cpi_yoy_forecast_high",
    "description": "Top of the 80% forecast range, %",
    "month": "September 2026",
-   "value": "3.2"
+   "value": "3.2%",
+   "number": 3.24
   },
   {
    "key": "unemployment_forecast_next_month",
    "description": "Unemployment rate forecast for next month, %, from a no-change forecast (no model beat it in backtests)",
    "month": "September 2026",
-   "value": "6.4"
+   "value": "6.4%",
+   "number": 6.4
   },
   {
    "key": "unemployment_forecast_low",
    "description": "Bottom of the 80% forecast range, %",
    "month": "September 2026",
-   "value": "6.2"
+   "value": "6.2%",
+   "number": 6.2
   },
   {
    "key": "unemployment_forecast_high",
    "description": "Top of the 80% forecast range, %",
    "month": "September 2026",
-   "value": "6.6"
+   "value": "6.6%",
+   "number": 6.6
   }
  ],
  "years": [

@@ -100,3 +100,42 @@ def test_known_gap_two_subjects_in_one_sentence():
 def test_known_gap_claims_without_numbers():
     """Only numbers are verified. A wrong claim with no number in it passes."""
     assert passes(check("Unemployment surged to a record high in August 2026."))  # NOT caught
+
+
+# ---------------------------------------------------------------- regressions from live runs
+# Real sentences from the first live evaluation (10 Gemini runs, October 2026). The first
+# group were verifier false alarms, now fixed; the second are genuine rule breaks by the model
+# and must stay rejected.
+
+LIVE_FALSE_ALARMS = [
+    "Real GDP for July 2026 showed a month to month change of 0.00 and rose 1.4 from a year earlier.",
+    "Real GDP for July 2026 showed a change of 0.00 per cent, though output rose 1.4 per cent from a year earlier.",
+    "In July 2026, real GDP showed a month to month change of 0.00, while real GDP rose 1.4 from a year earlier.",
+    "Gasoline prices rose 22.8, food from stores rose 2.8, and shelter prices rose 1.5.",
+]
+LIVE_TRUE_REJECTIONS = [
+    # "the rate" never says which rate: the measure must be named in the sentence.
+    "The monthly change of 0.0 is within the survey's margin of error, though the rate fell 0.7 from a year earlier.",
+]
+
+LIVE_FACTS = FACTS + [
+    Fact("gdp_change_month", 0.0, 2, ["gdp", "output", "economy"], is_change=True),
+    Fact("grocery_inflation", 2.8, 1, ["grocer", "food purchased", "food from stores"], is_change=True),
+    Fact("shelter_inflation", 1.5, 1, ["shelter"], is_change=True),
+]
+
+
+@pytest.mark.parametrize("text", LIVE_FALSE_ALARMS)
+def test_live_false_alarms_now_pass(text):
+    findings = verify(text, LIVE_FACTS, YEARS, CONTEXT)
+    assert passes(findings), [f.__dict__ for f in findings if not f.ok]
+
+
+@pytest.mark.parametrize("text", LIVE_TRUE_REJECTIONS)
+def test_live_rule_breaks_still_rejected(text):
+    assert not passes(verify(text, LIVE_FACTS, YEARS, CONTEXT))
+
+
+def test_bounded_window_still_catches_a_wrong_direction_in_a_list():
+    text = "Gasoline prices fell 22.8, and shelter prices rose 1.5."
+    assert not passes(verify(text, LIVE_FACTS, YEARS, CONTEXT))
