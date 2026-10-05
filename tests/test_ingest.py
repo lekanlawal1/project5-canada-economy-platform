@@ -103,3 +103,22 @@ def test_zip_without_expected_member_fails_loudly(server, session, tmp_path):
 
     with pytest.raises(ValueError, match="has no"):
         ingest.fetch_table(PID, {}, session, url=f"{base}/{PID}-eng.zip", raw_dir=tmp_path / "raw")
+
+
+def test_check_mode_exit_codes_drive_the_scheduler(server, tmp_path, monkeypatch):
+    """0 = nothing new (scheduler stops), 1 = something changed (rebuild), 2 = StatCan unreachable."""
+    serve_dir, base = server
+    write_zip(serve_dir, "REF_DATE,VALUE\n2026-01,1.0\n", 1_700_000_000)
+    s = requests.Session(); s.trust_env = False
+    manifest = {}
+    ingest.fetch_table(PID, manifest, s, url=f"{base}/{PID}-eng.zip", raw_dir=tmp_path / "raw")
+    monkeypatch.setattr(ingest, "load_manifest", lambda: manifest)
+    monkeypatch.setattr(ingest.requests, "Session", lambda: s)
+    monkeypatch.setattr(ingest, "table_url", lambda pid: f"{base}/{pid}-eng.zip")
+    tables = {PID: "test table"}
+
+    assert ingest.run(check_only=True, tables=tables) == 0
+    write_zip(serve_dir, "REF_DATE,VALUE\n2026-02,2.0\n", 1_800_000_000)
+    assert ingest.run(check_only=True, tables=tables) == 1
+    monkeypatch.setattr(ingest, "table_url", lambda pid: "http://127.0.0.1:9/unreachable.zip")
+    assert ingest.run(check_only=True, tables=tables) == 2

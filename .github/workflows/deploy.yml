@@ -1,29 +1,61 @@
-name: Deploy dashboard
+name: Refresh and deploy
 
-# Full pipeline, then publish site/ to GitHub Pages:
-#   download, build, forecast, data tests, export, deploy.
-# The data tests run BEFORE export: if any test errors, the job stops and the live site keeps
-# its last good version. Bad data never reaches the public page.
-#
-# Manual trigger only until GitHub Pages is switched on for the repository (Settings, Pages,
-# Source: GitHub Actions). Phase 7 adds a schedule after StatCan release days.
+# The platform refreshes itself. Every weekday after StatCan's 8:30 a.m. Eastern release:
+#   1. check:  ask StatCan whether any of the five tables changed (five tiny HEAD requests,
+#              compared with data/manifest.json). Nothing changed: stop here, seconds spent.
+#   2. build:  download, build, forecast, run the data tests, export, write the briefing.
+#              A data test error stops the job: the live site keeps its last good version.
+#              On success, commit the new manifest, row-count baseline and generated docs,
+#              so tomorrow's check compares against what was actually published.
+#   3. deploy: publish site/ to GitHub Pages.
+# Manual runs and pushes that change the site or pipeline skip the check and always build.
 on:
+  schedule:
+    # 14:07 UTC = 10:07 EDT / 9:07 EST, after the 8:30 Eastern release in both seasons.
+    # Off the hour because GitHub delays jobs scheduled at :00 when load is high.
+    - cron: "7 14 * * 1-5"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["site/**", "src/**", "sql/**", "requirements.txt", ".github/workflows/deploy.yml"]
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# One deployment at a time; a newer run replaces a queued one.
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
+  check:
+    runs-on: ubuntu-24.04
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - id: check
+        name: Did StatCan publish anything new?
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"; echo "Not a scheduled run: always build."; exit 0
+          fi
+          set +e; python -m src.ingest --check; code=$?; set -e
+          # --check exits 1 when a table changed, 0 when nothing did, anything else on error.
+          if [ $code -eq 1 ]; then echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [ $code -eq 0 ]; then echo "changed=false" >> "$GITHUB_OUTPUT"
+          else exit $code; fi
+
   build:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: write   # to commit the refreshed manifest and baselines
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -37,14 +69,26 @@ jobs:
         run: python -m src.build
       - name: Forecasts and backtest
         run: python -m src.forecast
-      - name: Data tests (a failure stops the deploy)
-        run: python -m src.data_tests
+      - name: Data tests (an error stops the deploy and updates nothing)
+        run: python -m src.data_tests --update-baseline
       - name: Export dashboard data
         run: python -m src.site_export
       - name: Monthly briefing (Gemini draft, verified; template if no key or not verified)
         run: python -m src.briefing
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Commit refreshed manifest, baseline and generated docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/manifest.json data/row_counts.json docs/decision_log.md docs/forecast_results.md
+          if git diff --cached --quiet; then echo "Nothing to commit."; exit 0; fi
+          # Parse the HTTP dates: compared as strings, "Tue, 29 Sep" sorts before "Thu, 24 Sep".
+          latest=$(python -c "import json, email.utils as e; m=json.load(open('data/manifest.json')); print(max(e.parsedate_to_datetime(v['last_modified']) for v in m.values()).strftime('%Y-%m-%d'))")
+          git commit -m "Data refresh: StatCan tables published up to ${latest}"
+          # A push made with the workflow token does not trigger other workflows, so this
+          # cannot start a loop.
+          git pull --rebase origin main && git push origin HEAD:main
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -53,6 +97,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
