@@ -80,8 +80,8 @@ def test_model_text_is_escaped_before_reaching_the_page():
 
 
 def test_em_dashes_are_removed():
-    out, _ = run([GOOD.replace("2026, unchanged", "2026 — unchanged")])
-    assert "—" not in out["text"]
+    out, _ = run([GOOD.replace("2026, unchanged", "2026 \u2014 unchanged")])
+    assert "\u2014" not in out["text"]
 
 
 @pytest.mark.parametrize("key", ["unemployment_rate", "inflation", "gdp_change_year"])
