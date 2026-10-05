@@ -32,7 +32,9 @@ from src.config import DB_PATH, ROOT
 SITE = ROOT / "site"
 DATA_DIR = SITE / "data"
 HEADLINE = "gender = 'Total - Gender' AND age_group = '15 years and over'"
-HISTORY_START = "2000-01-01"
+# Full history: the date-range control lets readers pick any period StatCan publishes
+# (LFS from 1976, CPI from 1914, new housing prices from 1981). Measured cost below.
+HISTORY_START = "1900-01-01"
 
 
 def clean(v):
@@ -179,11 +181,11 @@ def prices(con) -> dict:
                 GROUP BY month ORDER BY month""", [g]),
             "components": records(con, """SELECT product, yoy_pct, mom_pct, month FROM mart_cpi_monthly
                 WHERE geo = ? AND month = (SELECT max(month) FROM mart_cpi_monthly)""", [g]),
-            "shelter": columns(con, """SELECT month,
+            "shelter": columns(con, f"""SELECT month,
                 max(yoy_pct) FILTER (WHERE product = 'Rent') AS rent,
                 max(yoy_pct) FILTER (WHERE product = 'Mortgage interest cost') AS mortgage,
                 max(yoy_pct) FILTER (WHERE product = 'Food purchased from stores') AS groceries
-                FROM mart_cpi_monthly WHERE geo = ? AND month >= '2018-01-01'
+                FROM mart_cpi_monthly WHERE geo = ? AND month >= '{HISTORY_START}'
                 GROUP BY month ORDER BY month""", [g]),
         }
     return out

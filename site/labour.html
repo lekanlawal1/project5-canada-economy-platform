@@ -22,13 +22,7 @@
 
   <div class="filters">
     <label>Geography <select id="geo"></select></label>
-    <label>Period
-      <span class="seg" id="range">
-        <button type="button" data-years="5" aria-pressed="true">5 years</button>
-        <button type="button" data-years="10" aria-pressed="false">10 years</button>
-        <button type="button" data-years="0" aria-pressed="false">Since 2000</button>
-      </span>
-    </label>
+    <div class="range" id="range"></div>
   </div>
 
   <div class="grid grid-2">
@@ -39,7 +33,8 @@
     </div>
     <div class="card">
       <h2>Monthly change in employment</h2>
-      <p class="sub">Thousands of jobs. <b>Solid</b>: larger than the margin of error. <b>Grey</b>: within sampling noise.</p>
+      <p class="sub">Thousands of jobs. <b>Solid</b>: larger than the margin of error. <b>Grey</b>: within sampling noise.
+        <b>Faded</b>: before 2001, when StatCan published no margin of error, so not tested.</p>
       <div class="chart" id="emp" role="img" aria-label="Monthly employment change, significant months highlighted"></div>
     </div>
     <div class="card">
@@ -59,23 +54,14 @@
 
 <script>
 App.init();
-let data, geo = "Canada", years = 5;
-
-function since(cols, key) {
-  if (!years) return cols;
-  const last = cols.month[cols.month.length - 1];
-  const start = `${+last.slice(0, 4) - years}${last.slice(4)}`;
-  const i = cols.month.findIndex((m) => m >= start);
-  const out = {};
-  for (const k of Object.keys(cols)) out[k] = cols[k].slice(i);
-  return out;
-}
+let data, range, geo = "Canada";
 
 function render() {
   const s = data.series[geo];
-  const h = since(s.headline);
-  const a = since(s.ages);
-  const j = s.jobs;
+  const r = range.get();
+  const h = App.sliceRange(s.headline, r);
+  const a = App.sliceRange(s.ages, r);
+  const j = App.sliceRange(s.jobs, r);
   const latest = s.headline.month.length - 1;
   document.getElementById("ur-title").textContent =
     `Unemployment rate, ${geo}: ${App.num(s.headline.ur[latest])}% in ${App.month(s.headline.month[latest])}`;
@@ -92,7 +78,10 @@ function render() {
 
   App.chart("emp", (t) => ({
     data: [{ x: App.dates(h.month), y: h.emp_mom, type: "bar", name: "Employment change",
-      marker: { color: h.emp_sig.map((sig, i) => !sig ? t.neutral : h.emp_mom[i] < 0 ? t.neg : t.pos) },
+      // Three states: significant (solid colour), within noise (grey), not tested (faded colour).
+      // Untested months must not be grey: grey claims "noise", which the data cannot support.
+      marker: { color: h.emp_sig.map((sig, i) => sig === false ? t.neutral : h.emp_mom[i] < 0 ? t.neg : t.pos),
+                opacity: h.emp_sig.map((sig) => (sig == null ? 0.4 : 1)) },
       customdata: h.emp_sig.map((sig) => sig == null ? "no error data" : sig ? "significant" : "within noise"),
       hovertemplate: "%{y:+,.1f}k jobs (%{customdata})<extra></extra>" }],
     layout: { bargap: 0.2, yaxis: { ticksuffix: "k", zeroline: true } },
@@ -108,11 +97,13 @@ function render() {
     rows: a.month.map((m, i) => [App.month(m), App.num(a.youth[i]), App.num(a.core[i]), App.num(a.older[i])]).reverse() }));
 
   const hasRatio = j.month.length && j.unemployed_per_vacancy.some((v) => v != null);
+  const noRatioText = s.jobs.month.length ? "No vacancy data in this period (the survey starts in 2015)"
+                                          : "Not available for this geography";
   App.chart("ratio", (t) => ({
     data: hasRatio ? [{ x: App.dates(j.month), y: j.unemployed_per_vacancy, type: "scatter", mode: "lines",
       name: "Unemployed per vacancy", connectgaps: false, line: { color: t.s1, width: 2 },
       customdata: j.grade, hovertemplate: "%{y:.2f} per vacancy (grade %{customdata})<extra></extra>" }] : [],
-    layout: hasRatio ? {} : { annotations: [{ text: "Not available for this geography", showarrow: false,
+    layout: hasRatio ? {} : { annotations: [{ text: noRatioText, showarrow: false,
       xref: "paper", yref: "paper", x: 0.5, y: 0.5, font: { color: t.muted } }], xaxis: { visible: false }, yaxis: { visible: false } },
   }), () => ({ head: ["Month", "Unemployed per vacancy", "Vacancy rate (%)", "Quality grade"],
     rows: j.month.map((m, i) => [App.month(m), App.num(j.unemployed_per_vacancy[i], 2), App.num(j.job_vacancy_rate[i]), j.grade[i]]).reverse() }));
@@ -121,11 +112,10 @@ function render() {
 (async () => {
   try {
     data = await App.json("labour");
-    App.geoSelect("geo", data.geos, geo, (g) => { geo = g; render(); });
-    document.querySelectorAll("#range button").forEach((b) => b.addEventListener("click", () => {
-      document.querySelectorAll("#range button").forEach((x) => x.setAttribute("aria-pressed", x === b));
-      years = +b.dataset.years; render();
-    }));
+    const bounds = () => { const m = data.series[geo].headline.month; range.setBounds(m[0], m[m.length - 1]); };
+    range = App.rangeControl("range", render);
+    App.geoSelect("geo", data.geos, geo, (g) => { geo = g; bounds(); render(); });
+    bounds();
     render();
   } catch (err) { App.fail(err); }
 })();

@@ -171,6 +171,102 @@ const App = (() => {
     }
   }
 
+  // ---------- date range control ----------
+  /* rangeControl(id, onChange) renders presets (1, 5, 10, 20 years, All) and a Custom range picked
+     with Month and Year dropdowns (they behave the same on every browser, iPhone included).
+     The choice is kept in the URL (?range=10 or ?from=2019-01&to=2021-12) so a view can be shared.
+     Call setBounds(first, last) with the data's first and last month whenever the data changes. */
+  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August",
+    "September", "October", "November", "December"];
+  const PRESETS = [["1", "1 year"], ["5", "5 years"], ["10", "10 years"], ["20", "20 years"], ["all", "All"], ["custom", "Custom"]];
+  const addYears = (ym, n) => `${+ym.slice(0, 4) + n}${ym.slice(4)}`;
+  const clampYm = (ym, lo, hi) => (ym < lo ? lo : ym > hi ? hi : ym);
+
+  function rangeControl(id, onChange) {
+    const el = document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    const state = { preset: "5", from: params.get("from"), to: params.get("to"), first: null, last: null };
+    if (state.from && state.to) state.preset = "custom";
+    else if (PRESETS.some(([k]) => k === params.get("range"))) state.preset = params.get("range");
+
+    el.innerHTML = `<span class="seg" role="group" aria-label="Period">${PRESETS.map(([k, label]) =>
+        `<button type="button" data-preset="${k}">${label}</button>`).join("")}</span>
+      <span class="custom-range" hidden>
+        <span class="pick"><span class="pick-label">From</span>
+          <select data-part="fm" aria-label="From month"></select><select data-part="fy" aria-label="From year"></select></span>
+        <span class="pick"><span class="pick-label">To</span>
+          <select data-part="tm" aria-label="To month"></select><select data-part="ty" aria-label="To year"></select></span>
+      </span>
+      <span class="range-note" aria-live="polite"></span>`;
+    const sel = (part) => el.querySelector(`[data-part="${part}"]`);
+
+    function current() {
+      const { first, last } = state;
+      if (state.preset === "all") return { from: first, to: last };
+      if (state.preset === "custom") {
+        let from = clampYm(state.from || addYears(last, -5), first, last);
+        let to = clampYm(state.to || last, first, last);
+        if (from > to) [from, to] = [to, from];  // "From" after "To": swap rather than show nothing
+        return { from, to };
+      }
+      return { from: clampYm(addYears(last, -+state.preset), first, last), to: last };
+    }
+
+    function fillPickers(r) {
+      const y0 = +state.first.slice(0, 4), y1 = +state.last.slice(0, 4);
+      for (const [m, y, value] of [["fm", "fy", r.from], ["tm", "ty", r.to]]) {
+        const year = +value.slice(0, 4);
+        sel(y).innerHTML = Array.from({ length: y1 - y0 + 1 }, (_, i) => y1 - i)
+          .map((yy) => `<option value="${yy}"${yy === year ? " selected" : ""}>${yy}</option>`).join("");
+        sel(m).innerHTML = MONTH_NAMES.map((name, i) => {
+          const ym = `${year}-${String(i + 1).padStart(2, "0")}`;
+          const off = ym < state.first || ym > state.last;  // no data that month
+          return `<option value="${i + 1}"${ym === value ? " selected" : ""}${off ? " disabled" : ""}>${name}</option>`;
+        }).join("");
+      }
+    }
+
+    function sync(notify = true) {
+      const r = current();
+      el.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.preset === state.preset));
+      el.querySelector(".custom-range").hidden = state.preset !== "custom";
+      fillPickers(r);
+      el.querySelector(".range-note").textContent =
+        `Showing ${month(r.from)} to ${month(r.to)}. Data available from ${month(state.first)}.`;
+      const url = new URL(location.href);
+      ["range", "from", "to"].forEach((k) => url.searchParams.delete(k));
+      if (state.preset === "custom") { url.searchParams.set("from", r.from); url.searchParams.set("to", r.to); }
+      else if (state.preset !== "5") url.searchParams.set("range", state.preset);
+      history.replaceState(null, "", url);
+      if (notify) onChange(r);
+    }
+
+    el.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.preset === "custom" && state.preset !== "custom") {
+        const r = current();
+        state.from = r.from; state.to = r.to;  // start Custom from what is on screen
+      }
+      state.preset = b.dataset.preset;
+      sync();
+    }));
+    el.querySelectorAll("select").forEach((s) => s.addEventListener("change", () => {
+      const ym = (m, y) => `${sel(y).value}-${String(sel(m).value).padStart(2, "0")}`;
+      state.from = ym("fm", "fy");
+      state.to = ym("tm", "ty");
+      sync();
+    }));
+
+    return {
+      get: current,
+      setBounds(first, last) { state.first = first; state.last = last; sync(false); },
+    };
+  }
+
+  function sliceRange(cols, r) {
+    const keep = cols.month.map((m) => m >= r.from && m <= r.to);
+    return Object.fromEntries(Object.entries(cols).map(([k, v]) => [k, v.filter((_, i) => keep[i])]));
+  }
+
   function geoSelect(id, geos, value, onChange) {
     const sel = document.getElementById(id);
     sel.innerHTML = geos.map((g) => `<option${g === value ? " selected" : ""}>${g}</option>`).join("");
@@ -186,5 +282,6 @@ const App = (() => {
 
   function init() { header(); footer(); }
 
-  return { init, json, chart, tok, month, num, signed, dates, sparkline, tableHTML, geoSelect, fail, layout };
+  return { init, json, chart, tok, month, num, signed, dates, sparkline, tableHTML, geoSelect, fail, layout,
+    rangeControl, sliceRange };
 })();

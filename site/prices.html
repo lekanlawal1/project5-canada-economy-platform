@@ -22,13 +22,7 @@
 
   <div class="filters">
     <label>Geography <select id="geo"></select></label>
-    <label>Period
-      <span class="seg" id="range">
-        <button type="button" data-years="5" aria-pressed="true">5 years</button>
-        <button type="button" data-years="10" aria-pressed="false">10 years</button>
-        <button type="button" data-years="0" aria-pressed="false">Since 2000</button>
-      </span>
-    </label>
+    <div class="range" id="range"></div>
   </div>
 
   <div class="card">
@@ -46,7 +40,7 @@
     </div>
     <div class="card">
       <h2>Rent, mortgage interest and groceries</h2>
-      <p class="sub">12-month change, %, since 2018. The costs households notice most.</p>
+      <p class="sub">12-month change, %. The costs households notice most.</p>
       <div class="chart tall" id="shelter" role="img" aria-label="Rent, mortgage interest and grocery inflation"></div>
     </div>
   </div>
@@ -55,7 +49,7 @@
 
 <script>
 App.init();
-let data, geo = "Canada", years = 5;
+let data, range, geo = "Canada";
 const SHORT = {
   "All-items excluding food and energy": "Core (excl. food, energy)",
   "Household operations, furnishings and equipment": "Household operations",
@@ -65,17 +59,11 @@ const SHORT = {
 };
 const short = (p) => SHORT[p] || p;
 
-function since(cols) {
-  if (!years) return cols;
-  const last = cols.month[cols.month.length - 1];
-  const start = `${+last.slice(0, 4) - years}${last.slice(4)}`;
-  const i = cols.month.findIndex((m) => m >= start);
-  return Object.fromEntries(Object.entries(cols).map(([k, v]) => [k, v.slice(i)]));
-}
 
 function render() {
   const s = data.series[geo];
-  const h = since(s.headline);
+  const r = range.get();
+  const h = App.sliceRange(s.headline, r);
   const n = s.headline.month.length - 1;
   document.getElementById("cpi-title").textContent =
     `Headline and core inflation, ${geo}: ${App.num(s.headline.all_items[n])}% in ${App.month(s.headline.month[n])}`;
@@ -104,7 +92,7 @@ function render() {
   }), () => ({ head: ["Product group", "12-month change (%)", "Monthly change (%)"],
     rows: [...comps].reverse().map((c) => [c.product, App.signed(c.yoy_pct), App.signed(c.mom_pct)]) }));
 
-  const sh = s.shelter;
+  const sh = App.sliceRange(s.shelter, r);
   const lines = [["rent", "Rent", "s1"], ["mortgage", "Mortgage interest", "s2"], ["groceries", "Groceries", "s3"]];
   App.chart("shelter", (t) => ({
     data: lines.map(([k, label, c]) => ({ x: App.dates(sh.month), y: sh[k], type: "scatter", mode: "lines",
@@ -117,11 +105,15 @@ function render() {
 (async () => {
   try {
     data = await App.json("prices");
-    App.geoSelect("geo", data.geos, geo, (g) => { geo = g; render(); });
-    document.querySelectorAll("#range button").forEach((b) => b.addEventListener("click", () => {
-      document.querySelectorAll("#range button").forEach((x) => x.setAttribute("aria-pressed", x === b));
-      years = +b.dataset.years; render();
-    }));
+    // Earliest month = first month with an inflation figure (the index starts a year earlier).
+    const bounds = () => {
+      const h = data.series[geo].headline;
+      const i = h.all_items.findIndex((v) => v != null);
+      range.setBounds(h.month[i], h.month[h.month.length - 1]);
+    };
+    range = App.rangeControl("range", render);
+    App.geoSelect("geo", data.geos, geo, (g) => { geo = g; bounds(); render(); });
+    bounds();
     render();
   } catch (err) { App.fail(err); }
 })();
