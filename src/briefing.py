@@ -61,6 +61,9 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
             scale_forms=None, requires=None, note=None, place=None):
         if value is None:
             return
+        # Rounding can leave -0.0, which formats as "-0.00". The model copies it faithfully and
+        # then calls it a fall; the verifier rightly rejects that. Fix it at the source.
+        value = 0.0 if float(value) == 0 else float(value)
         facts.append(Fact(key, float(value), decimals, keywords, is_change, scale_forms or [], requires or []))
         years.add(month.year)
         described.append({"key": key, "description": description, "month": month_name(month),

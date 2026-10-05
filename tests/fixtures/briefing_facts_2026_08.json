@@ -260,7 +260,7 @@
   },
   {
    "key": "gdp_change_month",
-   "value": -0.0,
+   "value": 0.0,
    "decimals": 2,
    "keywords": [
     "gdp",
@@ -520,7 +520,7 @@
    "key": "gdp_change_month",
    "description": "Real GDP, % change from previous month",
    "month": "July 2026",
-   "value": "-0.00"
+   "value": "0.00"
   },
   {
    "key": "gdp_change_year",

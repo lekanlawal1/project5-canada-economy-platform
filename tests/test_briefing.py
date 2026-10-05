@@ -87,3 +87,17 @@ def test_em_dashes_are_removed():
 @pytest.mark.parametrize("key", ["unemployment_rate", "inflation", "gdp_change_year"])
 def test_fixture_has_the_facts_the_template_needs(key):
     assert any(d["key"] == key for d in DESCRIBED)
+
+
+def test_negative_zero_never_reaches_the_model():
+    """Found in the first live run: GDP's monthly change, rounded to -0.0 in the mart, was shown
+    to Gemini as "-0.00", and both drafts then described a zero change as a fall."""
+    value = round(-0.001, 2)
+    assert f"{value:.2f}" == "-0.00"           # the raw problem
+    normalised = 0.0 if float(value) == 0 else float(value)
+    assert f"{normalised:.2f}" == "0.00"       # what add() in build_facts now does
+
+
+def test_fact_sheet_has_no_negative_zero():
+    assert not any(d["value"].startswith("-0.0") and set(d["value"].lstrip("-").replace(".", "")) == {"0"}
+                   for d in DESCRIBED if d["value"])
