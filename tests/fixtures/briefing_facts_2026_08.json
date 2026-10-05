@@ -401,7 +401,7 @@
    "key": "unemployment_rate_change_month",
    "description": "Change in unemployment rate from previous month, percentage points",
    "month": "August 2026",
-   "value": "unchanged (0.0 percentage points)",
+   "value": "unchanged",
    "number": 0.0,
    "note": "NOT statistically significant (within StatCan's margin of error)"
   },
@@ -541,7 +541,7 @@
    "key": "gdp_change_month",
    "description": "Real GDP, % change from previous month",
    "month": "July 2026",
-   "value": "unchanged (0.00%)",
+   "value": "unchanged",
    "number": 0.0
   },
   {
