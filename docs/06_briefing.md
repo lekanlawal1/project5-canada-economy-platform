@@ -101,9 +101,64 @@ glued to letters ("417k", "3rd") were skipped entirely, a loophole now closed.
 
 ## Live model runs
 
-Pending: the API key is not yet configured in this environment. This section will record,
-for real Gemini drafts: how many passed first time, how many needed the retry, what the
-failures were, and response times.
+Three batches of 10 real runs each (`.github/workflows/briefing-eval.yml`, October 2026,
+gemini-3-flash-preview, thinkingLevel low). Each run goes through the full flow: draft,
+verify, one retry, template fallback. The fixes between batches came from reading every
+failure; each later batch used fresh drafts, not the ones the fixes were based on.
+
+| Batch | Verified first draft | Verified after retry | Fell back to template | Median response |
+|---|---|---|---|---|
+| 1: first version | 4 of 10 | 1 of 10 | **5 of 10** | 2.3 s |
+| 2: after fixes below | 9 of 10 | 1 of 10 | 0 of 10 | 7.5 s |
+| 3: after cut-off fix | 9 of 10 | 1 of 10 | 0 of 10 | 2.2 s |
+
+Before batch 1 there was a run on the live deploy that failed twice on the same number. The
+cause was ours: GDP's monthly change was rounded to -0.0 in the mart and shown to Gemini as
+"-0.00", so it faithfully described a zero change as a fall, and the verifier rightly rejected
+it. Fixed at the source, with a test.
+
+### What batch 1 taught, and what changed
+
+12 verifier failures in batch 1, read one by one:
+
+- **9 were false alarms by the verifier.** "Real GDP showed a change of 0.00 and rose 1.4 from a
+  year earlier": the direction check looked 30 characters past each number, so "rose" (which
+  belongs to 1.4) was read as describing 0.00. Fix: each number's direction words now stop at
+  the neighbouring number or a clause break (and, but, though, while, commas).
+- **1 was a keyword gap.** Gemini wrote "food from stores"; the grocery fact only knew "grocer"
+  and "food purchased". Added.
+- **2 were genuine rule breaks by Gemini.** "The rate fell 0.7" never says which rate. These
+  stay rejected: every sentence must name its measure.
+
+The passing drafts were accurate but read badly ("the unemployment rate was 6.4", "fell by
+-0.7"), because the fact sheet gave bare signed numbers and the model copied them. Facts now
+carry units and are worded as a direction plus a size ("down 0.7 percentage points"), and the
+prompt forbids minus signs and bare "the rate".
+
+All 12 real sentences are now regression tests: the false alarms must pass, the rule breaks
+must stay rejected, and the 15 planted errors must all still be caught. Loosening the verifier
+to fix false alarms could not quietly let real errors through.
+
+### What batch 2 taught
+
+One draft stopped mid-number: "(41,70". Gemini's thinking tokens count against the output
+limit, and 2,048 was too low for that run. The verifier happened to catch it (the broken number
+matched no fact), but a cut-off draft should be rejected for what it is, not by luck. Now:
+the response's `finishReason` is checked and anything other than a normal stop is rejected,
+the limit is 4,096, and errors get the second attempt instead of going straight to the
+template. Batch 3: every draft complete, 32 to 36 numbers each.
+
+### A published draft (batch 3)
+
+> The Canada unemployment rate was 6.4% in August 2026. The monthly change in the unemployment
+> rate was unchanged, which is within the survey's margin of error. Compared to a year earlier,
+> the unemployment rate fell 0.7 percentage points. [...] Canada CPI inflation was 3.0% in
+> August 2026, which matches the 3.0% recorded in July 2026. Core inflation was 2.1%. [...]
+> Real GDP was unchanged in July 2026. On a yearly basis, real GDP was up 1.4%.
+
+Every number correct, but the style is flat and list-like. The strict rules (name the measure
+in every sentence, copy values exactly) trade fluency for checkability. That is the right trade
+for a public page; a looser style would need a smarter verifier first.
 
 ## Honest limits
 
@@ -111,4 +166,6 @@ failures were, and response times.
   emphasise the wrong thing.
 - The fact sheet decides what the briefing can say. Anything not in it (wages, interest
   rates) cannot appear, by design.
-- One model, one prompt. No comparison across models or prompts has been run.
+- One model. 30 live runs is enough to see the failure modes, not to estimate a rare error
+  rate: a 1 in 100 problem could easily not appear yet. The verifier, not the pass rate, is
+  what protects the page.

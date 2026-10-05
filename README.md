@@ -41,7 +41,9 @@ dark mode, and works on phones and tablets (tested at iPhone SE to iPad Pro size
 - **The AI briefing cannot publish a wrong number.** Code checks every number in the draft for
   the right value, the right measure and the right direction. It caught 15 of 15 planted
   errors with 0 false alarms on correct drafts. A failed draft gets one retry, then a verified
-  template is published instead.
+  template is published instead. In 30 live Gemini runs, the first batch published an AI draft
+  only 5 times in 10; reading every failure led to fixes on both sides (mostly verifier false
+  alarms), and the next 20 runs all published a verified AI draft.
 
 ## Engineering highlights
 
