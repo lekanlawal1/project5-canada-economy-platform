@@ -1,7 +1,7 @@
 {
   "14100287": {
     "csv_bytes": 1180022898,
-    "downloaded_at": "2026-10-04T20:03:03+00:00",
+    "downloaded_at": "2026-10-05T03:18:55+00:00",
     "etag": "\"39a3bb5-65aa77aa7c184\"",
     "last_modified": "Fri, 04 Sep 2026 12:33:44 GMT",
     "url": "https://www150.statcan.gc.ca/n1/tbl/csv/14100287-eng.zip",
@@ -10,7 +10,7 @@
   },
   "14100371": {
     "csv_bytes": 690694,
-    "downloaded_at": "2026-10-04T20:03:06+00:00",
+    "downloaded_at": "2026-10-05T03:18:58+00:00",
     "etag": "\"b0b7-65c39c4ce631d\"",
     "last_modified": "Thu, 24 Sep 2026 12:30:45 GMT",
     "url": "https://www150.statcan.gc.ca/n1/tbl/csv/14100371-eng.zip",
@@ -19,7 +19,7 @@
   },
   "18100004": {
     "csv_bytes": 161013600,
-    "downloaded_at": "2026-10-04T20:03:05+00:00",
+    "downloaded_at": "2026-10-05T03:18:58+00:00",
     "etag": "\"e9949f-65b84b73938e6\"",
     "last_modified": "Tue, 15 Sep 2026 12:30:28 GMT",
     "url": "https://www150.statcan.gc.ca/n1/tbl/csv/18100004-eng.zip",
@@ -28,7 +28,7 @@
   },
   "18100205": {
     "csv_bytes": 9380835,
-    "downloaded_at": "2026-10-04T20:03:06+00:00",
+    "downloaded_at": "2026-10-05T03:18:58+00:00",
     "etag": "\"56d9e-65bacf2ba617e\"",
     "last_modified": "Thu, 17 Sep 2026 12:30:25 GMT",
     "url": "https://www150.statcan.gc.ca/n1/tbl/csv/18100205-eng.zip",
@@ -37,7 +37,7 @@
   },
   "36100434": {
     "csv_bytes": 56718646,
-    "downloaded_at": "2026-10-04T20:03:07+00:00",
+    "downloaded_at": "2026-10-05T03:19:00+00:00",
     "etag": "\"67989e-65c9e5a1be65c\"",
     "last_modified": "Tue, 29 Sep 2026 12:30:46 GMT",
     "url": "https://www150.statcan.gc.ca/n1/tbl/csv/36100434-eng.zip",
