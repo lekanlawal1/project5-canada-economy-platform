@@ -73,7 +73,7 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
             if not is_change:
                 display = f"{value:.{decimals}f}{unit}"
             elif value == 0:
-                display = f"unchanged ({value:.{decimals}f}{unit})"
+                display = "unchanged"  # no number needed; "0.0 percentage points" read robotically
             else:
                 display = f"{'up' if value > 0 else 'down'} {abs(value):.{decimals}f}{unit}"
         described.append({"key": key, "description": description, "month": month_name(month),
@@ -220,14 +220,21 @@ def call_gemini(prompt: str, api_key: str) -> tuple[str, float]:
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         # thinkingLevel low: in a previous project the default thinking level sometimes ran
         # for minutes per request. The task is short and fully specified.
-        "generationConfig": {"thinkingConfig": {"thinkingLevel": "low"}, "maxOutputTokens": 2048},
+        # 4096: thinking tokens count against this limit, and at 2048 a live run was cut off
+        # mid-number ("41,70").
+        "generationConfig": {"thinkingConfig": {"thinkingLevel": "low"}, "maxOutputTokens": 4096},
     }
     start = time.perf_counter()
     resp = requests.post(API_URL, headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
                          json=body, timeout=(10, 120))
     elapsed = time.perf_counter() - start
     resp.raise_for_status()
-    parts = resp.json()["candidates"][0]["content"]["parts"]
+    candidate = resp.json()["candidates"][0]
+    # A draft that did not finish normally (token limit, safety stop) is rejected outright,
+    # not left for the number checker to catch by luck.
+    if candidate.get("finishReason", "STOP") != "STOP":
+        raise RuntimeError(f"draft incomplete: finishReason {candidate.get('finishReason')}")
+    parts = candidate["content"]["parts"]
     text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
     return text.strip(), elapsed
 
@@ -275,9 +282,9 @@ def generate_from_facts(facts: list[Fact], described: list[dict], years: set[int
         for attempt in (1, 2):
             try:
                 text, secs = caller(user_prompt(described, feedback), api_key)
-            except Exception as err:  # network, quota, malformed response: fall back, never crash the deploy
+            except Exception as err:  # network, quota, cut-off draft: never crash the deploy
                 attempts.append({"attempt": attempt, "error": f"{type(err).__name__}: {err}"[:300]})
-                break
+                continue  # a transient error or cut-off draft gets the second attempt too
             text = tidy(text)
             findings = check(text)
             attempts.append({"attempt": attempt, "seconds": round(secs, 1), "numbers": len(findings),

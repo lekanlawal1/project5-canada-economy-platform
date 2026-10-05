@@ -62,10 +62,15 @@ def test_two_failed_drafts_fall_back_to_the_template():
     assert "6.1" not in out["text"]
 
 
-def test_api_error_falls_back_instead_of_breaking_the_deploy():
-    out, _ = run([TimeoutError("model took too long")])
+def test_api_errors_fall_back_instead_of_breaking_the_deploy():
+    out, _ = run([TimeoutError("model took too long"), TimeoutError("still slow")])
     assert out["source"] == "template"
     assert "TimeoutError" in out["attempts"][0]["error"]
+
+
+def test_a_transient_error_or_cut_off_draft_gets_the_retry():
+    out, prompts = run([RuntimeError("draft incomplete: finishReason MAX_TOKENS"), GOOD])
+    assert out["source"] == "gemini" and len(prompts) == 2
 
 
 def test_a_draft_with_no_numbers_is_not_accepted():
