@@ -20,13 +20,13 @@ data.
 
 Correct logic can still produce wrong output if StatCan changes its data, so both are needed.
 
-## What the data tests check (75 checks)
+## What the data tests check (80 checks)
 
 | Group | Checks | Severity |
 |---|---|---|
-| Unique keys | 12 tables, each on its natural key | error |
+| Unique keys | 13 tables, each on its natural key | error |
 | Not null | Keys and promised value columns | error |
-| Business rules | CPI base is 2002=100; codes valid; rates within 0 to 100; indexes positive; labour force = employment + unemployment; all 20 GDP sectors present and summing to the total within 2%; latest month has every province | error |
+| Business rules | CPI base is 2002=100; codes valid; rates within 0 to 100; indexes positive; labour force = employment + unemployment; all 20 GDP sectors present and summing to the total within 2%; latest month has every province; the published forecast has 2 targets x 3 horizons with ordered 80% ranges; every forecast method was scored at every horizon | error |
 | Freshness | Each table's latest month versus today | warn when one release late, error when two |
 | Official figures | 7 CPI and 4 LFS numbers copied from StatCan's releases | error for CPI, warn for LFS |
 | Row counts | Versus `data/row_counts.json` from the last good run | error if a table shrinks, warn if it grows over 10% |
