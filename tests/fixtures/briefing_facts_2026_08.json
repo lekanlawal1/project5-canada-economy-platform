@@ -1,0 +1,571 @@
+{
+ "facts": [
+  {
+   "key": "unemployment_rate",
+   "value": 6.4,
+   "decimals": 1,
+   "keywords": [
+    "unemploy"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "unemployment_rate_change_month",
+   "value": 0.0,
+   "decimals": 1,
+   "keywords": [
+    "unemploy"
+   ],
+   "is_change": true,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "unemployment_rate_change_year",
+   "value": -0.7,
+   "decimals": 1,
+   "keywords": [
+    "unemploy"
+   ],
+   "is_change": true,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "employment_change_month",
+   "value": -41.7,
+   "decimals": 1,
+   "keywords": [
+    "employment",
+    "jobs",
+    "job"
+   ],
+   "is_change": true,
+   "scale_forms": [
+    -41700.0
+   ],
+   "requires": []
+  },
+  {
+   "key": "unemployment_highest_province",
+   "value": 8.6,
+   "decimals": 1,
+   "keywords": [
+    "Newfoundland and Labrador"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "unemploy",
+    "jobless"
+   ]
+  },
+  {
+   "key": "unemployment_lowest_province",
+   "value": 5.0,
+   "decimals": 1,
+   "keywords": [
+    "Manitoba"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "unemploy",
+    "jobless"
+   ]
+  },
+  {
+   "key": "inflation",
+   "value": 3.0,
+   "decimals": 1,
+   "keywords": [
+    "inflation",
+    "consumer price",
+    "cpi",
+    "prices"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "inflation_previous_month",
+   "value": 3.0,
+   "decimals": 1,
+   "keywords": [
+    "inflation",
+    "consumer price",
+    "cpi",
+    "prices"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "core_inflation",
+   "value": 2.1,
+   "decimals": 1,
+   "keywords": [
+    "core",
+    "excluding food and energy"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "inflation_highest_province",
+   "value": 5.1,
+   "decimals": 1,
+   "keywords": [
+    "Nova Scotia"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "inflation",
+    "consumer price",
+    "cpi",
+    "prices"
+   ]
+  },
+  {
+   "key": "inflation_lowest_province",
+   "value": 2.4,
+   "decimals": 1,
+   "keywords": [
+    "Ontario"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "inflation",
+    "consumer price",
+    "cpi",
+    "prices"
+   ]
+  },
+  {
+   "key": "gasoline_inflation",
+   "value": 22.8,
+   "decimals": 1,
+   "keywords": [
+    "gasoline",
+    "gas prices"
+   ],
+   "is_change": true,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "shelter_inflation",
+   "value": 1.5,
+   "decimals": 1,
+   "keywords": [
+    "shelter"
+   ],
+   "is_change": true,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "grocery_inflation",
+   "value": 2.8,
+   "decimals": 1,
+   "keywords": [
+    "grocer",
+    "food purchased"
+   ],
+   "is_change": true,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "bank_of_canada_target",
+   "value": 2.0,
+   "decimals": 0,
+   "keywords": [
+    "target",
+    "bank of canada"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "bank_of_canada_band_low",
+   "value": 1.0,
+   "decimals": 0,
+   "keywords": [
+    "target",
+    "range",
+    "band"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "bank_of_canada_band_high",
+   "value": 3.0,
+   "decimals": 0,
+   "keywords": [
+    "target",
+    "range",
+    "band"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "new_home_prices_change_year",
+   "value": -2.0,
+   "decimals": 1,
+   "keywords": [
+    "home",
+    "housing",
+    "house"
+   ],
+   "is_change": true,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "job_vacancy_rate",
+   "value": 2.8,
+   "decimals": 1,
+   "keywords": [
+    "vacanc"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "unemployed_per_vacancy",
+   "value": 3.02,
+   "decimals": 2,
+   "keywords": [
+    "vacanc",
+    "per job",
+    "per opening"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "gdp_change_month",
+   "value": -0.0,
+   "decimals": 2,
+   "keywords": [
+    "gdp",
+    "gross domestic product",
+    "output",
+    "economy"
+   ],
+   "is_change": true,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "gdp_change_year",
+   "value": 1.4,
+   "decimals": 1,
+   "keywords": [
+    "gdp",
+    "gross domestic product",
+    "output",
+    "economy"
+   ],
+   "is_change": true,
+   "scale_forms": [],
+   "requires": []
+  },
+  {
+   "key": "cpi_yoy_forecast_next_month",
+   "value": 2.87,
+   "decimals": 1,
+   "keywords": [
+    "forecast",
+    "expect",
+    "project",
+    "outlook"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "inflation",
+    "consumer price",
+    "cpi",
+    "prices"
+   ]
+  },
+  {
+   "key": "cpi_yoy_forecast_low",
+   "value": 2.47,
+   "decimals": 1,
+   "keywords": [
+    "range",
+    "between",
+    "forecast"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "inflation",
+    "consumer price",
+    "cpi",
+    "prices"
+   ]
+  },
+  {
+   "key": "cpi_yoy_forecast_high",
+   "value": 3.24,
+   "decimals": 1,
+   "keywords": [
+    "range",
+    "between",
+    "forecast"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "inflation",
+    "consumer price",
+    "cpi",
+    "prices"
+   ]
+  },
+  {
+   "key": "unemployment_forecast_next_month",
+   "value": 6.4,
+   "decimals": 1,
+   "keywords": [
+    "forecast",
+    "expect",
+    "project",
+    "outlook"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "unemploy"
+   ]
+  },
+  {
+   "key": "unemployment_forecast_low",
+   "value": 6.2,
+   "decimals": 1,
+   "keywords": [
+    "range",
+    "between",
+    "forecast"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "unemploy"
+   ]
+  },
+  {
+   "key": "unemployment_forecast_high",
+   "value": 6.6,
+   "decimals": 1,
+   "keywords": [
+    "range",
+    "between",
+    "forecast"
+   ],
+   "is_change": false,
+   "scale_forms": [],
+   "requires": [
+    "unemploy"
+   ]
+  }
+ ],
+ "described": [
+  {
+   "key": "unemployment_rate",
+   "description": "Canada unemployment rate, %, seasonally adjusted",
+   "month": "August 2026",
+   "value": "6.4"
+  },
+  {
+   "key": "unemployment_rate_change_month",
+   "description": "Change in unemployment rate from previous month, percentage points",
+   "month": "August 2026",
+   "value": "0.0",
+   "note": "NOT statistically significant (within StatCan's margin of error)"
+  },
+  {
+   "key": "unemployment_rate_change_year",
+   "description": "Change in unemployment rate from a year earlier, percentage points",
+   "month": "August 2026",
+   "value": "-0.7",
+   "note": "statistically significant (beyond StatCan's margin of error)"
+  },
+  {
+   "key": "employment_change_month",
+   "description": "Change in employment from previous month, thousands of people",
+   "month": "August 2026",
+   "value": "-41.7 thousand (-41,700 people)",
+   "note": "NOT statistically significant (within StatCan's margin of error)"
+  },
+  {
+   "key": "unemployment_highest_province",
+   "description": "Highest provincial unemployment rate: Newfoundland and Labrador, %",
+   "month": "August 2026",
+   "value": "8.6",
+   "place": "Newfoundland and Labrador"
+  },
+  {
+   "key": "unemployment_lowest_province",
+   "description": "Lowest provincial unemployment rate: Manitoba, %",
+   "month": "August 2026",
+   "value": "5.0",
+   "place": "Manitoba"
+  },
+  {
+   "key": "inflation",
+   "description": "Canada CPI inflation, 12-month % change, all-items",
+   "month": "August 2026",
+   "value": "3.0"
+  },
+  {
+   "key": "inflation_previous_month",
+   "description": "Canada CPI inflation in the previous month, 12-month %",
+   "month": "July 2026",
+   "value": "3.0"
+  },
+  {
+   "key": "core_inflation",
+   "description": "Core inflation (CPI excluding food and energy), 12-month %",
+   "month": "August 2026",
+   "value": "2.1"
+  },
+  {
+   "key": "inflation_highest_province",
+   "description": "Highest provincial inflation: Nova Scotia, 12-month %",
+   "month": "August 2026",
+   "value": "5.1",
+   "place": "Nova Scotia"
+  },
+  {
+   "key": "inflation_lowest_province",
+   "description": "Lowest provincial inflation: Ontario, 12-month %",
+   "month": "August 2026",
+   "value": "2.4",
+   "place": "Ontario"
+  },
+  {
+   "key": "gasoline_inflation",
+   "description": "Gasoline prices, 12-month % change",
+   "month": "August 2026",
+   "value": "22.8"
+  },
+  {
+   "key": "shelter_inflation",
+   "description": "Shelter prices, 12-month % change",
+   "month": "August 2026",
+   "value": "1.5"
+  },
+  {
+   "key": "grocery_inflation",
+   "description": "Food purchased from stores prices, 12-month % change",
+   "month": "August 2026",
+   "value": "2.8"
+  },
+  {
+   "key": "bank_of_canada_target",
+   "description": "Bank of Canada inflation target, %",
+   "month": "August 2026",
+   "value": "2"
+  },
+  {
+   "key": "bank_of_canada_band_low",
+   "description": "Bottom of the Bank of Canada 1 to 3% control range",
+   "month": "August 2026",
+   "value": "1"
+  },
+  {
+   "key": "bank_of_canada_band_high",
+   "description": "Top of the Bank of Canada 1 to 3% control range",
+   "month": "August 2026",
+   "value": "3"
+  },
+  {
+   "key": "new_home_prices_change_year",
+   "description": "New home prices, 12-month % change (New Housing Price Index)",
+   "month": "August 2026",
+   "value": "-2.0"
+  },
+  {
+   "key": "job_vacancy_rate",
+   "description": "Job vacancy rate, %",
+   "month": "July 2026",
+   "value": "2.8"
+  },
+  {
+   "key": "unemployed_per_vacancy",
+   "description": "Unemployed people per job vacancy",
+   "month": "July 2026",
+   "value": "3.02"
+  },
+  {
+   "key": "gdp_change_month",
+   "description": "Real GDP, % change from previous month",
+   "month": "July 2026",
+   "value": "-0.00"
+  },
+  {
+   "key": "gdp_change_year",
+   "description": "Real GDP, % change from a year earlier",
+   "month": "July 2026",
+   "value": "1.4"
+  },
+  {
+   "key": "cpi_yoy_forecast_next_month",
+   "description": "CPI inflation forecast for next month, %, from a seasonal ARIMA model (it beat the naive forecast in backtests)",
+   "month": "September 2026",
+   "value": "2.9"
+  },
+  {
+   "key": "cpi_yoy_forecast_low",
+   "description": "Bottom of the 80% forecast range, %",
+   "month": "September 2026",
+   "value": "2.5"
+  },
+  {
+   "key": "cpi_yoy_forecast_high",
+   "description": "Top of the 80% forecast range, %",
+   "month": "September 2026",
+   "value": "3.2"
+  },
+  {
+   "key": "unemployment_forecast_next_month",
+   "description": "Unemployment rate forecast for next month, %, from a no-change forecast (no model beat it in backtests)",
+   "month": "September 2026",
+   "value": "6.4"
+  },
+  {
+   "key": "unemployment_forecast_low",
+   "description": "Bottom of the 80% forecast range, %",
+   "month": "September 2026",
+   "value": "6.2"
+  },
+  {
+   "key": "unemployment_forecast_high",
+   "description": "Top of the 80% forecast range, %",
+   "month": "September 2026",
+   "value": "6.6"
+  }
+ ],
+ "years": [
+  2026
+ ]
+}

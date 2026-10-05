@@ -177,9 +177,14 @@ function verdict(id, series, skill) {
 
     try {
       const b = await App.json("briefing");
-      document.getElementById("briefing").innerHTML = b.html;
+      // b.html is escaped server side (src/briefing.py); the provenance line is ours.
+      const how = b.source === "gemini"
+        ? `Drafted by ${b.model}. Every number was checked by code against the data: ${b.numbers_verified} values verified.`
+        : `Written from a fixed template (${b.reason}). Every number was checked by code: ${b.numbers_verified} values verified.`;
+      document.getElementById("briefing").innerHTML = b.html + `<p class="note">${how} Generated ${b.generated_at}.
+        <a href="https://github.com/lekanlawal1/project5-canada-economy-platform/blob/main/docs/06_briefing.md">How the check works</a>.</p>`;
       document.getElementById("briefing-section").hidden = false;
-    } catch { /* briefing is optional until phase 6 runs */ }
+    } catch { /* no briefing file: the section stays hidden */ }
   } catch (err) { App.fail(err); }
 })();
 </script>
