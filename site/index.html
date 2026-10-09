@@ -289,6 +289,8 @@ function personalCalculator(P, startGeo) {
   window.drawMine = (g) => { geo = P.categories[g] ? g : "Canada"; drawRows(); drawResult(); };
   drawRows(); drawResult();
   $("mine-section").hidden = false;
+  // links straight to the calculator arrive before it is shown, so the browser can't scroll there itself
+  if (location.hash === "#mine-section") requestAnimationFrame(() => $("mine-section").scrollIntoView());
 }
 
 (async () => {
