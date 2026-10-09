@@ -48,7 +48,7 @@ const App = (() => {
     };
     return merge({
       paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
-      font: { family: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', size: 12, color: t.ink2 },
+      font: { family: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', size: 12, color: t.ink2 },
       margin: { l: 8, r: 12, t: 8, b: 8 },
       xaxis: merge(axis, { showgrid: false, type: "date", hoverformat: "%b %Y", showline: true }),
       yaxis: merge(axis, { showgrid: true, zeroline: false }),
@@ -139,6 +139,7 @@ const App = (() => {
         <span>Canada Economy<span class="brand-long"> Intelligence</span></span></a>
       <nav class="nav" aria-label="Pages">${PAGES.map(([href, label]) =>
         `<a href="${href}"${href === here ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>
+      <a class="home-link" href="https://lekanlawal1.github.io/portfolio-site/#economy" title="Back to Lekan Lawal's portfolio">Lekan Lawal</a>
       <button class="theme-btn" type="button"></button></div>`;
     el.querySelector(".theme-btn").addEventListener("click", () =>
       applyTheme(currentTheme() === "dark" ? "light" : "dark"));
