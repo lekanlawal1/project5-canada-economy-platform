@@ -22,6 +22,16 @@
 
   <section class="grid grid-3 tiles" id="tiles" aria-label="Headline indicators"></section>
 
+  <section id="sowhat-section" hidden>
+    <div class="sowhat-head">
+      <h2 class="section-title">What it means for you</h2>
+      <label class="sowhat-geo">Where you live <select id="sowhat-geo"></select></label>
+    </div>
+    <p class="sowhat-sub">The same numbers in plain language. Every sentence is a fixed rule over StatCan's data,
+      not AI text, so it cannot state a figure the data does not hold.</p>
+    <div class="grid grid-3" id="sowhat"></div>
+  </section>
+
   <section id="briefing-section" hidden>
     <h2 class="section-title">Monthly briefing</h2>
     <div class="card" id="briefing"></div>
@@ -143,6 +153,31 @@ function verdict(id, series, skill) {
     const drawTiles = () => { document.getElementById("tiles").innerHTML = d.tiles.map((t) => tileHTML(t, d)).join(""); };
     drawTiles();
     document.querySelector(".theme-btn").addEventListener("click", () => setTimeout(drawTiles));
+
+    // "What it means for you": cards are built server side (src/site_export.py, so_what_cards);
+    // the browser only escapes and lays them out.
+    if (d.so_what) {
+      const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      const ICON = { "Renter": "&#8962;", "Job seeker": "&#9998;", "Employer": "&#9881;" };
+      let where = "Canada";
+      try { where = localStorage.getItem("sowhat-geo") || "Canada"; } catch { /* private mode */ }
+      if (!d.so_what.cards[where]) where = "Canada";
+      const drawSoWhat = () => {
+        document.getElementById("sowhat").innerHTML = (d.so_what.cards[where] || []).map((c) => `
+          <article class="card sowhat-card">
+            <div class="sowhat-who"><span aria-hidden="true">${ICON[c.who] || ""}</span>${esc(c.who)}</div>
+            <h3>${esc(c.headline)}</h3>
+            ${c.lines.map((l) => `<p>${esc(l)}</p>`).join("")}
+            <p class="note">${esc(c.note)} ${esc(App.month(c.month))}.</p>
+          </article>`).join("") || "<p>No figures for this geography yet.</p>";
+      };
+      App.geoSelect("sowhat-geo", d.so_what.geos, where, (g) => {
+        where = g; try { localStorage.setItem("sowhat-geo", g); } catch { /* private mode */ }
+        drawSoWhat();
+      });
+      drawSoWhat();
+      document.getElementById("sowhat-section").hidden = false;
+    }
 
     const fc = (s) => d.forecasts.filter((r) => r.series === s);
     forecastChart("fc-unemployment", d.history.unemployment, fc("unemployment"), {});

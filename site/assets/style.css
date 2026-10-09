@@ -176,6 +176,19 @@ select, .seg button {
 .chart.tall { height: 420px; }
 .chart.short { height: 240px; }
 
+/* ---------- "what it means for you" ---------- */
+.sowhat-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-top: 36px; }
+.sowhat-head .section-title { margin: 0; }
+.sowhat-geo { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 8px; }
+.sowhat-sub { color: var(--ink-2); font-size: 13.5px; margin: 6px 0 14px; max-width: 760px; }
+.sowhat-card { display: flex; flex-direction: column; gap: 6px; }
+.sowhat-card h3 { font-family: "Bricolage Grotesque", Inter, sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 2px; }
+.sowhat-card p { margin: 0; font-size: 14px; color: var(--ink-2); }
+.sowhat-card p.note { margin-top: auto; padding-top: 6px; font-size: 12px; color: var(--muted); }
+.sowhat-who { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; font-size: 12px; font-weight: 700; color: var(--ink);
+  border: 2px solid var(--edge); border-radius: 999px; padding: 2px 10px 2px 4px; background: var(--surface-2); }
+.sowhat-who span { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; }
+
 /* ---------- stat tiles ---------- */
 .tile { display: flex; flex-direction: column; gap: 2px; }
 .tile .label { font-size: 13px; color: var(--ink-2); }

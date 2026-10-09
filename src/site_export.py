@@ -139,7 +139,151 @@ def overview(con) -> dict:
     gdp_history = columns(con, "SELECT month, mom_pct AS v FROM mart_gdp_monthly WHERE naics_code='T001' "
                                "AND month >= '2022-01-01' ORDER BY month")
     return dict(tiles=tiles, history=history, forecasts=forecasts, skill=skill,
-                anomalies=anomalies, gdp_sectors=gdp_sectors, gdp_history=gdp_history)
+                anomalies=anomalies, gdp_sectors=gdp_sectors, gdp_history=gdp_history,
+                so_what=so_what(con))
+
+
+# --------------------------------------------------------------------------- "what it means for you"
+# Plain-language cards for a renter, a job seeker and an employer. The sentences are fixed rules
+# over numbers from the marts, not AI text, so they can never state a number the data does not hold.
+# Kept separate from the SQL (so_what_facts) so the wording rules are unit-tested on their own.
+
+SAME_PP = 0.2        # within this many points, two rates are "about the same"
+SAME_RATIO = 0.1     # within this, unemployed-per-vacancy is "about the same" as a year ago
+RENT_EXAMPLE = 2000  # illustrative monthly rent, dollars
+SHOP_EXAMPLE = 250   # illustrative weekly grocery shop, dollars
+
+
+def so_what_facts(con, geo: str) -> dict:
+    def one(sql, params):
+        r = records(con, sql, params)
+        return r[0] if r else {}
+
+    cpi = {}
+    for key, product in (("all", "All-items"), ("rent", "Rent"), ("groceries", "Food purchased from stores")):
+        cpi[key] = one("""SELECT month, yoy_pct FROM mart_cpi_monthly WHERE geo = ? AND product = ?
+            AND yoy_pct IS NOT NULL ORDER BY month DESC LIMIT 1""", [geo, product])
+    core = one("""SELECT month, yoy_pct FROM mart_cpi_monthly WHERE geo = 'Canada'
+        AND product = 'All-items excluding food and energy' AND yoy_pct IS NOT NULL ORDER BY month DESC LIMIT 1""", [])
+    lab = one(f"""SELECT month, unemployment_rate AS ur, unemployment_rate_yoy_pp AS ur_yoy,
+        unemployment_rate_yoy_significant AS ur_yoy_sig FROM mart_labour_monthly
+        WHERE geo = ? AND {HEADLINE} AND unemployment_rate IS NOT NULL ORDER BY month DESC LIMIT 1""", [geo])
+    # unemployed per vacancy now and in the same month a year earlier (matched by calendar month)
+    jobs = one("""SELECT j.month, j.unemployed_per_vacancy AS upv, j.job_vacancy_rate AS jvr,
+            j.job_vacancy_rate_yoy_pp AS jvr_yoy, j.is_low_quality AS low_q, p.unemployed_per_vacancy AS upv_prev
+        FROM mart_job_market_monthly j
+        LEFT JOIN mart_job_market_monthly p ON p.geo = j.geo AND p.month = j.month - INTERVAL 12 MONTH
+        WHERE j.geo = ? AND j.unemployed_per_vacancy IS NOT NULL ORDER BY j.month DESC LIMIT 1""", [geo])
+    return {"geo": geo, "cpi": cpi, "core": core, "labour": lab, "jobs": jobs}
+
+
+def _pct(v: float) -> str:
+    return f"{v:.1f}%"
+
+
+def _money(v: float) -> str:
+    return f"${v:,.0f}"
+
+
+def _month_name(ym: str) -> str:
+    """'2026-07' -> 'July 2026'."""
+    names = ["January", "February", "March", "April", "May", "June", "July", "August",
+             "September", "October", "November", "December"]
+    return f"{names[int(ym[5:7]) - 1]} {ym[:4]}"
+
+
+def _change(v: float, unit: str = "%") -> tuple[str, str]:
+    """A signed change as (direction word, size): 'up'/'down'/'flat'."""
+    if abs(v) < 0.05:
+        return "flat", "0.0" + unit
+    return ("up" if v > 0 else "down"), f"{abs(v):.1f}{unit}"
+
+
+def so_what_cards(f: dict) -> list[dict]:
+    """Facts for one geography -> three cards. Any card whose facts are missing is left out."""
+    cards = []
+    geo, cpi = f["geo"], f["cpi"]
+    rent, allc, groc = cpi.get("rent", {}), cpi.get("all", {}), cpi.get("groceries", {})
+
+    if rent.get("yoy_pct") is not None and allc.get("yoy_pct") is not None:
+        r, a = rent["yoy_pct"], allc["yoy_pct"]
+        pace = ("about the same pace as" if abs(r - a) < SAME_PP
+                else "faster than" if r > a else "slower than")
+        word, size = _change(r)
+        if word == "flat":
+            lines = [f"Rent in {geo} is level with a year ago, while prices overall moved {_pct(a)}."]
+            head = "Rent flat over the year"
+        else:
+            lines = [f"Rent in {geo} is {word} {size} on a year ago, {pace} prices overall ({_pct(a)}).",
+                     f"On {_money(RENT_EXAMPLE)} a month, a {size} change is about "
+                     f"{_money(RENT_EXAMPLE * abs(r) / 100)} a month, or {_money(RENT_EXAMPLE * abs(r) / 100 * 12)} a year."]
+            head = f"Rent {word} {size} in a year"
+        if groc.get("yoy_pct") is not None:
+            g = groc["yoy_pct"]
+            gword, gsize = _change(g)
+            if gword == "flat":
+                lines.append("Grocery prices are level with a year ago.")
+            else:
+                lines.append(f"Groceries are {gword} {gsize}: a {_money(SHOP_EXAMPLE)} weekly shop costs about "
+                             f"{_money(SHOP_EXAMPLE * abs(g) / 100)} {'more' if g > 0 else 'less'} than a year ago.")
+        cards.append({"who": "Renter", "headline": head, "lines": lines,
+                      "month": rent["month"],
+                      "note": "The index is an average across all rentals; a single lease can move very differently."})
+
+    lab, jobs = f["labour"], f["jobs"]
+    if lab.get("ur") is not None:
+        lines = []
+        if lab.get("ur_yoy") is not None:
+            d = lab["ur_yoy"]
+            if abs(d) < 0.05:
+                lines.append("That is unchanged from a year ago.")
+            else:
+                move = f"{'up' if d > 0 else 'down'} {abs(d):.1f} points from a year ago"
+                lines.append(f"That is {move}" + ("." if lab.get("ur_yoy_sig") else
+                             ", within the survey's margin of error, so not a clear change."))
+        if jobs.get("upv") is not None:
+            u, up = jobs["upv"], jobs.get("upv_prev")
+            line = f"In {_month_name(jobs['month'])} there were {u:.1f} unemployed people for every open job"
+            if up is not None:
+                cmp = ("about the same as" if abs(u - up) < SAME_RATIO
+                       else "more competition than" if u > up else "less competition than")
+                line += f", {cmp} a year ago ({up:.1f})"
+            lines.append(line + ".")
+        cards.append({"who": "Job seeker", "headline": f"Unemployment is {_pct(lab['ur'])}", "lines": lines,
+                      "month": lab["month"], "note": "Ages 15 and over, seasonally adjusted."})
+
+    if jobs.get("upv") is not None:
+        u, up = jobs["upv"], jobs.get("upv_prev")
+        if up is None or abs(u - up) < SAME_RATIO:
+            head = "Hiring: about as hard as a year ago"
+        else:
+            head = "Hiring: easier than a year ago" if u > up else "Hiring: harder than a year ago"
+        lines = []
+        if jobs.get("jvr") is not None:
+            line = f"{_pct(jobs['jvr'])} of jobs are vacant"
+            if jobs.get("jvr_yoy") is not None:
+                d = jobs["jvr_yoy"]
+                line += (", the same as a year ago" if abs(d) < 0.05
+                         else f" ({'+' if d > 0 else '-'}{abs(d):.1f} points on a year ago)")
+            lines.append(line + ".")
+        if up is not None:
+            lines.append(f"Each opening has {u:.1f} unemployed people who could fill it, against {up:.1f} a year ago.")
+        core = f.get("core") or {}
+        if core.get("yoy_pct") is not None:
+            c = core["yoy_pct"]
+            band = "inside" if 1 <= c <= 3 else "above" if c > 3 else "below"
+            lines.append(f"Core inflation across Canada is {_pct(c)}, {band} the Bank of Canada's 1 to 3% range.")
+        cards.append({"who": "Employer", "headline": head, "lines": lines, "month": jobs["month"],
+                      "note": ("StatCan grades this vacancy estimate as low quality: read it with caution."
+                               if jobs.get("low_q") else "Job vacancies run a month behind the other figures.")})
+    return cards
+
+
+def so_what(con) -> dict:
+    out = {"geos": geos(con), "cards": {}}
+    for g in out["geos"]:
+        out["cards"][g] = so_what_cards(so_what_facts(con, g))
+    return out
 
 
 def labour(con) -> dict:
