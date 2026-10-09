@@ -82,6 +82,22 @@ presets for 1, 5, 10 and 20 years and All, plus Custom with Month and Year dropd
   "within noise", a claim the data cannot support. They are now drawn faded in their up or down
   colour and the chart says "not tested".
 
+## What it means for you
+
+Under the headline tiles, three plain-language cards (a renter, a job seeker, an employer) say what
+this month's numbers mean, for Canada or any province the reader picks.
+
+- **Rules, not AI.** Each sentence is a fixed rule over values from the marts
+  (`so_what_cards` in `src/site_export.py`): "faster than" or "slower than" prices overall, "easier" or
+  "harder" to hire from unemployed people per vacancy against the same month a year earlier. The
+  dollar examples are arithmetic on the published rate ($2,000 rent at 2.4% is $48 a month). The AI
+  briefing already shows what a verified AI summary looks like; these cards are the part that must
+  never be wrong, so no model writes them.
+- **Honest about the data.** An unemployment change inside StatCan's margin of error is called "not a
+  clear change"; the vacancy figure names its month because it runs a month behind; a vacancy estimate
+  StatCan grades as low quality says so; a card whose numbers are missing is left out rather than guessed.
+- **Tested.** `tests/test_so_what.py` pins every wording rule, including flat, falling and missing values.
+
 ## Tested in a real browser
 
 Every page was rendered in headless Chromium at 1280 px (light) and 390 px (dark, phone) and
