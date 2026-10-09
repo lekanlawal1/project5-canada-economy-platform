@@ -1,12 +1,12 @@
 {
   "14100287": {
-    "csv_bytes": 1180022898,
-    "downloaded_at": "2026-10-05T03:18:55+00:00",
-    "etag": "\"39a3bb5-65aa77aa7c184\"",
-    "last_modified": "Fri, 04 Sep 2026 12:33:44 GMT",
+    "csv_bytes": 1181966919,
+    "downloaded_at": "2026-10-09T18:12:24+00:00",
+    "etag": "\"39bce2d-65d6786758771\"",
+    "last_modified": "Fri, 09 Oct 2026 12:31:19 GMT",
     "url": "https://www150.statcan.gc.ca/n1/tbl/csv/14100287-eng.zip",
-    "zip_bytes": 60439477,
-    "zip_sha256": "7174a1ce0be0bc829b16c479b4e9b6231c8a3dfb171c57916ced06e099b151f7"
+    "zip_bytes": 60542509,
+    "zip_sha256": "c1cfb244022b8ed68840e53adc4afbe0b0d2ac231a592fe451e95ec57bc5922c"
   },
   "14100371": {
     "csv_bytes": 690694,
