@@ -32,6 +32,37 @@
     <div class="grid grid-3" id="sowhat"></div>
   </section>
 
+  <section id="mine-section" hidden>
+    <h2 class="section-title">Your inflation rate</h2>
+    <p class="sowhat-sub">The official rate averages everyone's spending. Yours depends on what you actually buy: rent
+      or a mortgage, a car or a bus pass. Enter roughly what you spend in a month in <b id="mine-where"></b>
+      (change it above). Nothing you type leaves this page.</p>
+    <div class="grid grid-2 mine">
+      <div class="card mine-form">
+        <div class="mine-tools">
+          <button type="button" class="mine-btn" id="mine-typical">Fill in a typical household</button>
+          <button type="button" class="mine-btn" id="mine-clear">Clear</button>
+        </div>
+        <div id="mine-rows"></div>
+        <p class="mine-total">Total: <b id="mine-total">$0</b> a month</p>
+      </div>
+      <div class="card mine-result" aria-live="polite">
+        <div class="mine-hero">
+          <div><span>Your rate</span><b id="mine-rate">n/a</b></div>
+          <div><span id="mine-official-label">Official rate</span><b id="mine-official">n/a</b></div>
+        </div>
+        <p class="mine-sentence" id="mine-sentence"></p>
+        <h3 class="mine-h3">What's driving your rate</h3>
+        <p class="mine-legend"><i class="up"></i>pushes it up <i class="down"></i>pulls it down
+          <span>Points each category adds to your rate</span></p>
+        <div class="mine-bars" id="mine-bars"></div>
+        <details class="mine-table"><summary>Show as a table</summary><div id="mine-table"></div></details>
+        <p class="note" id="mine-note"></p>
+      </div>
+    </div>
+    <div class="mine-tip" id="mine-tip" role="tooltip" hidden></div>
+  </section>
+
   <section id="briefing-section" hidden>
     <h2 class="section-title">Monthly briefing</h2>
     <div class="card" id="briefing"></div>
@@ -147,6 +178,119 @@ function verdict(id, series, skill) {
     `Tested on ${n} past monthly forecasts since 2010 (COVID months excluded). Published method by horizon: ` + lines.join("; ") + ".";
 }
 
+
+// ---------------------------------------------------------------------------- your inflation rate
+// Each category's 12-month price change, weighted by what you spend on it (src/site_export.py,
+// personal_rate, is the tested copy of this sum). Spending stays in this browser.
+function personalCalculator(P, startGeo) {
+  const $ = (id) => document.getElementById(id);
+  const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const money = (v) => "$" + Math.round(v).toLocaleString("en-CA");
+  const pct = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + "%";
+  const pts = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(2) + " pts";
+  const TYPICAL_TOTAL = 4000;
+  let geo = P.categories[startGeo] ? startGeo : "Canada";
+  let spend = {};
+  try { spend = JSON.parse(localStorage.getItem("mine-spend") || "{}"); } catch { /* private mode */ }
+  const save = () => { try { localStorage.setItem("mine-spend", JSON.stringify(spend)); } catch { /* private mode */ } };
+  const cats = () => P.categories[geo];
+  const typical = () => Object.fromEntries(cats().map((c) => [c.category, Math.round(c.weight_pct / 100 * TYPICAL_TOTAL / 5) * 5]));
+  if (!Object.keys(spend).length) spend = typical();
+
+  function drawRows() {
+    $("mine-rows").innerHTML = cats().map((c) => `
+      <label class="mine-row">
+        <span class="mine-label"><b>${esc(c.label)}</b>${c.hint ? `<small>${esc(c.hint)}</small>` : ""}</span>
+        <span class="mine-input"><span aria-hidden="true">$</span><input type="number" inputmode="numeric" min="0" step="10"
+          data-cat="${c.category}" value="${spend[c.category] || ""}" placeholder="0" aria-label="${esc(c.label)}, dollars a month"></span>
+      </label>`).join("");
+    $("mine-rows").querySelectorAll("input").forEach((el) => el.addEventListener("input", () => {
+      spend[el.dataset.cat] = Math.max(0, Number(el.value) || 0);
+      save(); drawResult();
+    }));
+  }
+
+  function drawResult() {
+    const cs = cats();
+    const total = cs.reduce((a, c) => a + (spend[c.category] || 0), 0);
+    const official = P.official[geo];
+    $("mine-total").textContent = money(total);
+    $("mine-official-label").textContent = `Official, ${geo}`;
+    $("mine-official").textContent = official == null ? "n/a" : pct(official);
+    $("mine-where").textContent = geo;
+    if (total <= 0) {
+      $("mine-rate").textContent = "n/a";
+      $("mine-sentence").textContent = "Enter what you spend in a month to see your rate.";
+      $("mine-bars").innerHTML = ""; $("mine-table").innerHTML = "";
+      return;
+    }
+    const rows = cs.map((c) => {
+      const share = (spend[c.category] || 0) / total;
+      return { ...c, share, contrib: share * c.yoy_pct, gap: (share - c.weight_pct / 100) * (c.yoy_pct - official) };
+    });
+    const rate = rows.reduce((a, r) => a + r.contrib, 0);
+    const extra = rows.reduce((a, r) => a + (spend[r.category] || 0) * r.yoy_pct / (100 + r.yoy_pct), 0);
+    $("mine-rate").textContent = pct(rate);
+
+    // Why it differs: the category whose share of YOUR spending, times how far its price change is
+    // from the official rate, explains most of the gap (the shares' differences sum to zero).
+    const diff = rate - official;
+    let why = "";
+    if (Math.abs(diff) >= 0.15) {
+      const top = [...rows].sort((a, b) => (diff > 0 ? b.gap - a.gap : a.gap - b.gap))[0];
+      const more = top.share > top.weight_pct / 100;
+      why = ` The biggest reason: ${top.label.toLowerCase()} (prices ${pct(top.yoy_pct)} over the year) is
+        ${more ? "a bigger" : "a smaller"} part of your spending than of a typical household's
+        (${Math.round(top.share * 100)}% versus ${Math.round(top.weight_pct)}%).`;
+    }
+    $("mine-sentence").innerHTML = (Math.abs(diff) < 0.15
+      ? `Your prices rose about as fast as the official rate.`
+      : `Your prices rose <b>${Math.abs(diff).toFixed(1)} points ${diff > 0 ? "faster" : "slower"}</b> than the official rate.`)
+      + why + ` What you buy each month costs about <b>${money(extra)}</b> ${extra >= 0 ? "more" : "less"} than the same things a year ago.`;
+
+    // diverging bars: points each category adds to your rate, sorted by size
+    const shown = rows.filter((r) => r.share > 0).sort((a, b) => Math.abs(b.contrib) - Math.abs(a.contrib));
+    const maxAbs = Math.max(...shown.map((r) => Math.abs(r.contrib)), 0.01);
+    const hasNeg = shown.some((r) => r.contrib < 0);
+    $("mine-bars").innerHTML = shown.map((r, i) => {
+      const w = Math.abs(r.contrib) / maxAbs * (hasNeg ? 50 : 100);
+      const left = hasNeg ? (r.contrib < 0 ? 50 - w : 50) : 0;
+      return `<div class="mine-bar" tabindex="0" data-i="${i}">
+        <span class="mine-bar-label">${esc(r.label)}</span>
+        <span class="mine-track">${hasNeg ? `<i class="zero"></i>` : ""}<i class="fill ${r.contrib < 0 ? "down" : "up"}" style="left:${left}%;width:${Math.max(w, 0.8)}%"></i></span>
+        <span class="mine-bar-val">${pts(r.contrib)}</span></div>`;
+    }).join("");
+    const tip = $("mine-tip");
+    $("mine-bars").querySelectorAll(".mine-bar").forEach((el) => {
+      const r = shown[+el.dataset.i];
+      const show = () => {
+        tip.innerHTML = `<b>${esc(r.label)}</b>${Math.round(r.share * 100)}% of your spending<br>Prices ${pct(r.yoy_pct)} over the year`
+          + `${r.derived ? " (worked out from StatCan's published groups)" : ""}<br>Adds ${pts(r.contrib)} to your rate`;
+        const b = el.getBoundingClientRect();
+        tip.hidden = false;
+        tip.style.left = `${Math.min(innerWidth - tip.offsetWidth - 12, Math.max(12, b.left + b.width / 2 - tip.offsetWidth / 2))}px`;
+        tip.style.top = `${b.top - tip.offsetHeight - 8 + scrollY}px`;
+      };
+      el.addEventListener("mouseenter", show); el.addEventListener("focus", show);
+      el.addEventListener("mouseleave", () => { tip.hidden = true; }); el.addEventListener("blur", () => { tip.hidden = true; });
+    });
+    $("mine-table").innerHTML = `<table><thead><tr><th>Category</th><th class="n">Your share</th><th class="n">Price change</th><th class="n">Adds to your rate</th></tr></thead><tbody>`
+      + shown.map((r) => `<tr><td>${esc(r.label)}</td><td class="n">${Math.round(r.share * 100)}%</td><td class="n">${pct(r.yoy_pct)}</td><td class="n">${pts(r.contrib)}</td></tr>`).join("")
+      + `</tbody></table>`;
+  }
+
+  $("mine-typical").addEventListener("click", () => { spend = typical(); save(); drawRows(); drawResult(); });
+  $("mine-clear").addEventListener("click", () => { spend = {}; save(); drawRows(); drawResult(); });
+  $("mine-note").textContent = `Price changes: Statistics Canada's Consumer Price Index, ${App.month(P.month)}, 12 months earlier to now.`
+    + ` Typical household: StatCan's ${P.basket_year} basket weights for ${geo === "Canada" ? "Canada" : "this province"}, scaled to $4,000 a month.`
+    + ` "Other home costs" and "Other transportation" are worked out from the published shelter and transportation figures`
+    + ` minus rent and gas. Check: with the typical household, this calculator lands within 0.35 points of the official rate,`
+    + ` and the pipeline refuses to publish if it doesn't.`;
+  window.drawMine = (g) => { geo = P.categories[g] ? g : "Canada"; drawRows(); drawResult(); };
+  drawRows(); drawResult();
+  $("mine-section").hidden = false;
+}
+
 (async () => {
   try {
     const d = await App.json("overview");
@@ -174,9 +318,11 @@ function verdict(id, series, skill) {
       App.geoSelect("sowhat-geo", d.so_what.geos, where, (g) => {
         where = g; try { localStorage.setItem("sowhat-geo", g); } catch { /* private mode */ }
         drawSoWhat();
+        if (window.drawMine) window.drawMine(g);
       });
       drawSoWhat();
       document.getElementById("sowhat-section").hidden = false;
+      if (d.personal) personalCalculator(d.personal, where);
     }
 
     const fc = (s) => d.forecasts.filter((r) => r.series === s);

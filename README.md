@@ -26,6 +26,23 @@ Five pages: **Overview** (headline numbers, forecasts, GDP, unusual moves, AI br
 **Labour**, **Prices**, **Housing** and **Province compare**. Every chart has a table view,
 dark mode, and works on phones and tablets (tested at iPhone SE to iPad Pro sizes).
 
+### Your inflation rate
+
+The official inflation rate averages everyone's spending. The calculator on the Overview page works out yours:
+enter roughly what you spend in a month (rent or other home costs, gas or transit, food...) and it weights each
+category's 12-month price change by your spending, for Canada or your province. It also says why your rate
+differs ("gas, up 25%, is 12% of your spending versus 4% for a typical household") and what that means in
+dollars. Nothing typed leaves the browser.
+
+- **Sourced, not guessed:** the "typical household" is StatCan's own CPI basket weights (table 18-10-0007),
+  added to the pipeline as a sixth source.
+- **Checked against the official answer:** with the official weights, the calculator must reproduce the
+  published all-items rate. Measured over 220 province-months: 0.08 points off on average, 0.27 at most. A
+  data test fails the deploy if any geography is more than 0.35 points off.
+- **Two derived categories:** rent and gas are where people differ most, so they are split out. "Other home
+  costs" and "other transportation" are worked out from the published groups minus those parts, by their
+  official weights (`sql/marts/08_mart_personal_inflation.sql`).
+
 ## Results worth knowing
 
 - **Matches StatCan's official releases exactly.** 11 headline figures (CPI 3.0%, gasoline
