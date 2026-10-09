@@ -308,3 +308,4 @@ footer a { color: var(--ink-2); }
   .mine-track { grid-area: track; }
   .mine-hero b { font-size: 28px; }
 }
+#mine-section { scroll-margin-top: 84px; }
