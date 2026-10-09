@@ -140,7 +140,32 @@ def overview(con) -> dict:
                                "AND month >= '2022-01-01' ORDER BY month")
     return dict(tiles=tiles, history=history, forecasts=forecasts, skill=skill,
                 anomalies=anomalies, gdp_sectors=gdp_sectors, gdp_history=gdp_history,
-                so_what=so_what(con))
+                so_what=so_what(con), personal=personal_inflation(con))
+
+
+# --------------------------------------------------------------------------- personal inflation
+
+def personal_rate(spend: dict[str, float], categories: list[dict]) -> float | None:
+    """A person's inflation rate: each category's 12-month price change, weighted by what they
+    spend on it. The page does the same sum in JavaScript; this copy is what the tests check."""
+    total = sum(max(0.0, spend.get(c["category"], 0.0)) for c in categories)
+    if total <= 0:
+        return None
+    return sum(max(0.0, spend.get(c["category"], 0.0)) * c["yoy_pct"] for c in categories) / total
+
+
+def personal_inflation(con) -> dict:
+    """Categories, official weights and latest price changes for the calculator, per geography."""
+    rows = records(con, """SELECT geo, category, label, hint, weight_pct, yoy_pct, derived, month, basket_year
+        FROM mart_personal_inflation ORDER BY geo, sort_order""")
+    official = {r["geo"]: r["yoy_pct"] for r in records(con, """SELECT geo, yoy_pct FROM mart_cpi_monthly
+        WHERE product = 'All-items' AND month = (SELECT max(month) FROM mart_cpi_monthly)""")}
+    out = {"geos": geos(con), "month": rows[0]["month"] if rows else None,
+           "basket_year": rows[0]["basket_year"] if rows else None, "official": official, "categories": {}}
+    for r in rows:
+        out["categories"].setdefault(r["geo"], []).append(
+            {k: r[k] for k in ("category", "label", "hint", "weight_pct", "yoy_pct", "derived")})
+    return out
 
 
 # --------------------------------------------------------------------------- "what it means for you"

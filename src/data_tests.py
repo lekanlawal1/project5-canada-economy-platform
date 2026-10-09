@@ -41,6 +41,7 @@ UNIQUE_KEYS = {
     "mart_job_market_monthly": ["month", "geo"],
     "mart_gdp_monthly": ["month", "naics_code"],
     "mart_province_scorecard": ["geo"],
+    "mart_personal_inflation": ["geo", "category"],
     "forecast_latest": ["series", "horizon"],
 }
 
@@ -52,6 +53,7 @@ NOT_NULL = {
     "stg_nhpi": ["month", "geo", "index_value", "use_with_caution"],
     "stg_gdp": ["month", "naics_code", "gdp_millions"],
     "mart_province_scorecard": ["labour_month", "unemployment_rate", "cpi_month", "cpi_yoy_pct"],
+    "mart_personal_inflation": ["geo", "category", "weight_pct", "yoy_pct"],
 }
 
 # (description, SQL that counts violating rows)
@@ -90,6 +92,20 @@ RULES = [
     ("Latest CPI month has all 11 geographies for all-items",
      "SELECT 11 - count(*) FROM mart_cpi_monthly WHERE product = 'All-items' "
      "AND month = (SELECT max(month) FROM mart_cpi_monthly)"),
+    ("CPI basket: the 8 major groups' weights add up to 100% in every geography (within 0.2)",
+     "SELECT count(*) FROM (SELECT geo, sum(weight_pct) s FROM stg_cpi_weights WHERE product IN ("
+     "'Food', 'Shelter', 'Household operations, furnishings and equipment', 'Clothing and footwear', "
+     "'Transportation', 'Health and personal care', 'Recreation, education and reading', "
+     "'Alcoholic beverages, tobacco products and recreational cannabis') GROUP BY geo) WHERE abs(s - 100) > 0.2"),
+    ("Personal inflation calculator: 10 categories for Canada and all 10 provinces",
+     "SELECT abs(count(*) - 110) FROM mart_personal_inflation"),
+    # The calculator's arithmetic is only trustworthy if the official spending pattern gives
+    # the official answer. Measured: 0.08 points off on average, 0.27 at most (2025-2026).
+    ("Personal inflation at official weights matches published all-items within 0.35 points",
+     "SELECT count(*) FROM (SELECT geo, sum(weight_pct * yoy_pct) / sum(weight_pct) est "
+     "FROM mart_personal_inflation GROUP BY geo) e JOIN mart_cpi_monthly a ON a.geo = e.geo "
+     "AND a.product = 'All-items' AND a.month = (SELECT max(month) FROM mart_cpi_monthly) "
+     "WHERE abs(e.est - a.yoy_pct) > 0.35"),
     ("Published forecast has 2 targets x 3 horizons, each with an ordered 80% range",
      "SELECT abs(count(*) - 6) + count(*) FILTER (WHERE low_80 > high_80) FROM forecast_latest"),
     ("Every forecast method was scored at every horizon in the backtest",

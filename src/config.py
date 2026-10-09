@@ -19,6 +19,7 @@ TABLES = {
     "18100205": "New Housing Price Index, monthly",
     "14100371": "Job vacancies, payroll employees and job vacancy rate, monthly",
     "36100434": "GDP at basic prices by industry, monthly",
+    "18100007": "Basket weights of the Consumer Price Index, annual",
 }
 
 
@@ -31,6 +32,7 @@ RAW_MODELS = {
     "raw_nhpi": ("18100205", "raw/03_raw_nhpi.sql"),
     "raw_job_vacancies": ("14100371", "raw/04_raw_job_vacancies.sql"),
     "raw_gdp": ("36100434", "raw/05_raw_gdp.sql"),
+    "raw_cpi_weights": ("18100007", "raw/06_raw_cpi_weights.sql"),
 }
 
 
