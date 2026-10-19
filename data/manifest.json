@@ -18,13 +18,13 @@
     "zip_sha256": "d12326104eb2d548e4e4a39b44032787f392192777bd8622d8294bfb51e14437"
   },
   "18100004": {
-    "csv_bytes": 161013600,
-    "downloaded_at": "2026-10-05T03:18:58+00:00",
-    "etag": "\"e9949f-65b84b73938e6\"",
-    "last_modified": "Tue, 15 Sep 2026 12:30:28 GMT",
+    "csv_bytes": 161295102,
+    "downloaded_at": "2026-10-19T19:48:07+00:00",
+    "etag": "\"ea0480-65e30aec37d7f\"",
+    "last_modified": "Mon, 19 Oct 2026 12:30:43 GMT",
     "url": "https://www150.statcan.gc.ca/n1/tbl/csv/18100004-eng.zip",
-    "zip_bytes": 15307935,
-    "zip_sha256": "3840c1810061b79035a9153dbc9189fed4ced6aaacdeddb86b13579b51f1c6d2"
+    "zip_bytes": 15336576,
+    "zip_sha256": "7852a5ea863a62129c7733059ba031c661348b8b3d38a3744d77e9053d10a390"
   },
   "18100007": {
     "csv_bytes": 17216150,
