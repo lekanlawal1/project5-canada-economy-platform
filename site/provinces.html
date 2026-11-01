@@ -7,8 +7,11 @@
   <meta name="description" content="Canada's ten provinces side by side: unemployment, inflation, new home prices and job vacancies.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
-  <script src="assets/plotly.min.js"></script>
-  <script src="assets/app.js"></script>
+  <!-- the saved light/dark choice, before anything is drawn, so the page never flashes the wrong theme -->
+  <script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch {}</script>
+  <!-- deferred: the page shows at once, with a loader in each chart, while the 1.4 MB chart library arrives -->
+  <script src="assets/plotly.min.js" defer></script>
+  <script src="assets/app.js" defer></script>
 <script src="https://lekanlawal1.github.io/portfolio-site/portfolio-bar.js" data-project="econ" defer></script>
 </head>
 <body>
@@ -33,18 +36,19 @@
   <div class="card">
     <h2 id="metric-title"></h2>
     <p class="sub" id="metric-sub"></p>
-    <div class="chart" id="metric-chart" role="img" aria-label="Provinces ranked on the selected indicator"></div>
+    <div class="chart" id="metric-chart" role="img" aria-label="Provinces ranked on the selected indicator"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
   </div>
 
   <h2 class="section-title" id="sm-title">Unemployment rate since 2016, each province against Canada</h2>
   <div class="card">
     <p class="sub">%. Blue: the province. Grey: Canada. Same scale on every panel so levels compare directly.</p>
-    <div class="chart" id="multiples" style="height:520px" role="img" aria-label="Unemployment rate by province, small multiples"></div>
+    <div class="chart" id="multiples" style="height:520px" role="img" aria-label="Unemployment rate by province, small multiples"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
   </div>
 </main>
 <footer id="foot"></footer>
 
 <script>
+addEventListener("DOMContentLoaded", () => {
 App.init();
 let data, metric = "unemployment_rate", sortKey = "sort_order", sortDir = 1;
 
@@ -160,6 +164,7 @@ function multiples() {
     multiples();
   } catch (err) { App.fail(err); }
 })();
+});
 </script>
 </body>
 </html>

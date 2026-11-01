@@ -7,8 +7,11 @@
   <meta name="description" content="Unemployment, employment changes and job vacancies by province, with StatCan's own sampling error.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
-  <script src="assets/plotly.min.js"></script>
-  <script src="assets/app.js"></script>
+  <!-- the saved light/dark choice, before anything is drawn, so the page never flashes the wrong theme -->
+  <script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch {}</script>
+  <!-- deferred: the page shows at once, with a loader in each chart, while the 1.4 MB chart library arrives -->
+  <script src="assets/plotly.min.js" defer></script>
+  <script src="assets/app.js" defer></script>
 <script src="https://lekanlawal1.github.io/portfolio-site/portfolio-bar.js" data-project="econ" defer></script>
 </head>
 <body>
@@ -30,30 +33,31 @@
     <div class="card">
       <h2 id="ur-title">Unemployment rate</h2>
       <p class="sub">Ages 15 and over, %.</p>
-      <div class="chart" id="ur" role="img" aria-label="Unemployment rate over time"></div>
+      <div class="chart" id="ur" role="img" aria-label="Unemployment rate over time"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
     <div class="card">
       <h2>Monthly change in employment</h2>
       <p class="sub">Thousands of jobs. <b>Solid</b>: larger than the margin of error. <b>Grey</b>: within sampling noise.
         <b>Faded</b>: before 2001, when StatCan published no margin of error, so not tested.</p>
-      <div class="chart" id="emp" role="img" aria-label="Monthly employment change, significant months highlighted"></div>
+      <div class="chart" id="emp" role="img" aria-label="Monthly employment change, significant months highlighted"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
     <div class="card">
       <h2>Unemployment by age</h2>
       <p class="sub">%. Youth unemployment moves first and furthest in a downturn.</p>
-      <div class="chart" id="ages" role="img" aria-label="Unemployment rate by age group"></div>
+      <div class="chart" id="ages" role="img" aria-label="Unemployment rate by age group"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
     <div class="card">
       <h2>Unemployed people per job vacancy</h2>
       <p class="sub">Higher means a harder market for job seekers. Not seasonally adjusted; vacancy data start in 2015.
         Months StatCan grades E or F (low reliability) are left out.</p>
-      <div class="chart" id="ratio" role="img" aria-label="Unemployed people per job vacancy"></div>
+      <div class="chart" id="ratio" role="img" aria-label="Unemployed people per job vacancy"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
   </div>
 </main>
 <footer id="foot"></footer>
 
 <script>
+addEventListener("DOMContentLoaded", () => {
 App.init();
 let data, range, geo = "Canada";
 
@@ -120,6 +124,7 @@ function render() {
     render();
   } catch (err) { App.fail(err); }
 })();
+});
 </script>
 </body>
 </html>

@@ -173,6 +173,17 @@ select, .seg button {
 .section-title { font-size: 24px; margin: 36px 0 14px; letter-spacing: -0.03em; font-weight: 800; }
 
 .chart { width: 100%; height: 320px; }
+/* Bouncing bars in each chart until it's drawn: a little bar chart coming to life.
+   Adapted from a loader on Uiverse.io by satyamchaudharydev (MIT). */
+.chart { position: relative; }
+.chart > .loading-bars { position: absolute; inset: 0; margin: auto; width: 44px; height: 30px; display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
+.loading-bars i { width: 7px; height: 14px; background: var(--s1); border: 1.5px solid var(--edge); border-radius: 2px;
+  transform-origin: bottom; animation: loading-bars-grow 1s ease-in-out infinite; }
+.loading-bars i:nth-child(2) { animation-delay: .15s; background: var(--accent); }
+.loading-bars i:nth-child(3) { animation-delay: .3s; background: var(--s3); }
+.loading-bars i:nth-child(4) { animation-delay: .45s; background: var(--s2); }
+@keyframes loading-bars-grow { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.9); } }
+@media (prefers-reduced-motion: reduce) { .loading-bars i { animation-duration: 2.4s; } }
 .chart.tall { height: 420px; }
 .chart.short { height: 240px; }
 

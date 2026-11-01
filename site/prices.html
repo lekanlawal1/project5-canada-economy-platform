@@ -7,8 +7,11 @@
   <meta name="description" content="Canadian inflation by province and by product, against the Bank of Canada target.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
-  <script src="assets/plotly.min.js"></script>
-  <script src="assets/app.js"></script>
+  <!-- the saved light/dark choice, before anything is drawn, so the page never flashes the wrong theme -->
+  <script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch {}</script>
+  <!-- deferred: the page shows at once, with a loader in each chart, while the 1.4 MB chart library arrives -->
+  <script src="assets/plotly.min.js" defer></script>
+  <script src="assets/app.js" defer></script>
 <script src="https://lekanlawal1.github.io/portfolio-site/portfolio-bar.js" data-project="econ" defer></script>
 </head>
 <body>
@@ -30,25 +33,26 @@
     <h2 id="cpi-title">Headline and core inflation</h2>
     <p class="sub">%. Core excludes food and energy, the most volatile prices. Shaded band: the Bank of Canada's
       1 to 3% target range (the target itself is 2%).</p>
-    <div class="chart" id="cpi" role="img" aria-label="Headline and core inflation over time"></div>
+    <div class="chart" id="cpi" role="img" aria-label="Headline and core inflation over time"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
   </div>
 
   <div class="grid grid-2" style="margin-top:16px">
     <div class="card">
       <h2 id="comp-title">What is driving it</h2>
       <p class="sub">12-month change by product group, %, latest month. Grey bar: all-items, for reference.</p>
-      <div class="chart tall" id="components" role="img" aria-label="Inflation by product group"></div>
+      <div class="chart tall" id="components" role="img" aria-label="Inflation by product group"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
     <div class="card">
       <h2>Rent, mortgage interest and groceries</h2>
       <p class="sub">12-month change, %. The costs households notice most.</p>
-      <div class="chart tall" id="shelter" role="img" aria-label="Rent, mortgage interest and grocery inflation"></div>
+      <div class="chart tall" id="shelter" role="img" aria-label="Rent, mortgage interest and grocery inflation"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
   </div>
 </main>
 <footer id="foot"></footer>
 
 <script>
+addEventListener("DOMContentLoaded", () => {
 App.init();
 let data, range, geo = "Canada";
 const SHORT = {
@@ -118,6 +122,7 @@ function render() {
     render();
   } catch (err) { App.fail(err); }
 })();
+});
 </script>
 </body>
 </html>

@@ -7,8 +7,11 @@
   <meta name="description" content="Canada's labour market, prices, housing and GDP from Statistics Canada open data, refreshed automatically, with honest forecasts.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
-  <script src="assets/plotly.min.js"></script>
-  <script src="assets/app.js"></script>
+  <!-- the saved light/dark choice, before anything is drawn, so the page never flashes the wrong theme -->
+  <script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch {}</script>
+  <!-- deferred: the page shows at once, with a loader in each chart, while the 1.4 MB chart library arrives -->
+  <script src="assets/plotly.min.js" defer></script>
+  <script src="assets/app.js" defer></script>
 <script src="https://lekanlawal1.github.io/portfolio-site/portfolio-bar.js" data-project="econ" defer></script>
 </head>
 <body>
@@ -74,13 +77,13 @@
     <div class="card">
       <h2>Unemployment rate</h2>
       <p class="sub">Canada, seasonally adjusted, %. Forecast points show the 80% range from past errors.</p>
-      <div class="chart" id="fc-unemployment" role="img" aria-label="Unemployment rate history and forecast"></div>
+      <div class="chart" id="fc-unemployment" role="img" aria-label="Unemployment rate history and forecast"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
       <div class="verdict" id="verdict-unemployment"></div>
     </div>
     <div class="card">
       <h2>Inflation (CPI, 12-month change)</h2>
       <p class="sub">Canada, all-items, %. Shaded band: Bank of Canada 1 to 3% target range.</p>
-      <div class="chart" id="fc-cpi" role="img" aria-label="Inflation history and forecast"></div>
+      <div class="chart" id="fc-cpi" role="img" aria-label="Inflation history and forecast"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
       <div class="verdict" id="verdict-cpi"></div>
     </div>
   </div>
@@ -90,12 +93,12 @@
     <div class="card">
       <h2>Real GDP, monthly change</h2>
       <p class="sub">All industries, chained 2017 dollars, seasonally adjusted, %.</p>
-      <div class="chart tall" id="gdp-history" role="img" aria-label="Monthly GDP growth"></div>
+      <div class="chart tall" id="gdp-history" role="img" aria-label="Monthly GDP growth"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
     <div class="card">
       <h2 id="gdp-sectors-title">Which sectors moved</h2>
       <p class="sub">Monthly change by sector, %. Bar length is the rate, not the size: hover for each sector's share of GDP.</p>
-      <div class="chart tall" id="gdp-sectors" role="img" aria-label="GDP change by sector"></div>
+      <div class="chart tall" id="gdp-sectors" role="img" aria-label="GDP change by sector"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
   </div>
 
@@ -109,6 +112,7 @@
 <footer id="foot"></footer>
 
 <script>
+addEventListener("DOMContentLoaded", () => {
 App.init();
 
 const VERDICT = {
@@ -371,6 +375,7 @@ function personalCalculator(P, startGeo) {
     } catch { /* no briefing file: the section stays hidden */ }
   } catch (err) { App.fail(err); }
 })();
+});
 </script>
 </body>
 </html>

@@ -7,8 +7,11 @@
   <meta name="description" content="New home prices by province and metro area from the New Housing Price Index.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
-  <script src="assets/plotly.min.js"></script>
-  <script src="assets/app.js"></script>
+  <!-- the saved light/dark choice, before anything is drawn, so the page never flashes the wrong theme -->
+  <script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch {}</script>
+  <!-- deferred: the page shows at once, with a loader in each chart, while the 1.4 MB chart library arrives -->
+  <script src="assets/plotly.min.js" defer></script>
+  <script src="assets/app.js" defer></script>
 <script src="https://lekanlawal1.github.io/portfolio-site/portfolio-bar.js" data-project="econ" defer></script>
 </head>
 <body>
@@ -36,18 +39,19 @@
     <div class="card">
       <h2 id="rank-title">12-month change</h2>
       <p class="sub">%, house and land. Faded bars: StatCan flags the estimate "use with caution".</p>
-      <div class="chart tall" id="rank" role="img" aria-label="New home price change by geography"></div>
+      <div class="chart tall" id="rank" role="img" aria-label="New home price change by geography"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
     <div class="card">
       <h2 id="trend-title">Over time</h2>
       <p class="sub">12-month change, %, for the period chosen above. (The ranking on the left is always the latest month.)</p>
-      <div class="chart tall" id="trend" role="img" aria-label="New home price change over time"></div>
+      <div class="chart tall" id="trend" role="img" aria-label="New home price change over time"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     </div>
   </div>
 </main>
 <footer id="foot"></footer>
 
 <script>
+addEventListener("DOMContentLoaded", () => {
 App.init();
 let data, range, geo = "Ontario", level = "province";
 
@@ -105,6 +109,7 @@ function render() {
     render();
   } catch (err) { App.fail(err); }
 })();
+});
 </script>
 </body>
 </html>

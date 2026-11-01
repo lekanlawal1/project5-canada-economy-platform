@@ -74,6 +74,7 @@ const App = (() => {
   function draw(entry) {
     const t = tok();
     const spec = entry.build(t);
+    entry.el.querySelector(":scope > .loading-bars")?.remove();
     Plotly.react(entry.el, spec.data, layout(spec.layout), CONFIG);
     if (entry.table) renderTable(entry);
   }
