@@ -66,8 +66,10 @@ def main(argv=None) -> int:
     lines += [f"- {c} x {r}" for r, c in reasons.most_common()] or ["- none"]
     if errors:
         lines += ["", "### API errors", ""] + [f"- {e}" for e in errors]
-    lines += ["", "### One published draft", "", next((r["text"] for r in results if r["source"] == "gemini"),
-                                                      "(no AI draft passed)")]
+    # every published text, so the writing itself can be read and compared, not only the pass rate
+    lines += ["", "### Published drafts", ""]
+    for i, r in enumerate(results, 1):
+        lines += [f"<details><summary>Run {i}: {r['source']}</summary>", "", r["text"], "", "</details>"]
     report = "\n".join(lines)
     print(report)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
