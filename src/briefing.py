@@ -117,12 +117,13 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
     add("inflation_highest_province", top[1], 1, [top[0]], f"Highest provincial inflation: {top[0]}, 12-month %", cpi[0], requires=infl, place=top[0])
     add("inflation_lowest_province", bot[1], 1, [bot[0]], f"Lowest provincial inflation: {bot[0]}, 12-month %", cpi[0], requires=infl, place=bot[0])
 
-    for product, key, words in (("Gasoline", "gasoline_inflation", ["gasoline", "gas prices"]),
-                                ("Shelter", "shelter_inflation", ["shelter"]),
-                                ("Food purchased from stores", "grocery_inflation", ["grocer", "food purchased", "food from stores"])):
+    for product, key, words, name in (("Gasoline", "gasoline_inflation", ["gasoline", "gas prices"], "Gasoline prices"),
+                                      ("Shelter", "shelter_inflation", ["shelter"], "Shelter costs (rent, mortgage interest, utilities)"),
+                                      ("Food purchased from stores", "grocery_inflation", ["grocer", "food purchased", "food from stores"],
+                                       "Grocery prices")):
         r = one("""SELECT month, yoy_pct FROM mart_cpi_monthly WHERE geo = 'Canada' AND product = ?
             ORDER BY month DESC LIMIT 1""", [product])
-        add(key, r[1], 1, words, f"{product} prices, 12-month % change", r[0], True)
+        add(key, r[1], 1, words, f"{name}, 12-month % change", r[0], True)
 
     add("bank_of_canada_target", 2.0, 0, ["target", "bank of canada"], "Bank of Canada inflation target, %", cpi[0])
     add("bank_of_canada_band_low", 1.0, 0, ["target", "range", "band"], "Bottom of the Bank of Canada 1 to 3% control range", cpi[0])
@@ -152,8 +153,9 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
         add(f"{series}_forecast_next_month", fc, 1, ["forecast", "expect", "project", "outlook"],
             f"{'Unemployment rate' if series == 'unemployment' else 'CPI inflation'} forecast for next month, %, from a {how}",
             target_d, requires=subj)
-        add(f"{series}_forecast_low", lo80, 1, ["range", "between", "forecast"], "Bottom of the 80% forecast range, %", target_d, requires=subj)
-        add(f"{series}_forecast_high", hi80, 1, ["range", "between", "forecast"], "Top of the 80% forecast range, %", target_d, requires=subj)
+        name = "unemployment rate" if series == "unemployment" else "CPI inflation"
+        add(f"{series}_forecast_low", lo80, 1, ["range", "between", "forecast"], f"Bottom of the 80% range around the {name} forecast, %", target_d, requires=subj)
+        add(f"{series}_forecast_high", hi80, 1, ["range", "between", "forecast"], f"Top of the 80% range around the {name} forecast, %", target_d, requires=subj)
 
     return facts, described, years
 
@@ -193,26 +195,40 @@ def template_briefing(d: dict) -> str:
 
 # --------------------------------------------------------------------------- Gemini
 
-SYSTEM = """You write the monthly briefing for a public dashboard about Canada's economy.
+SYSTEM = """You write the monthly economy briefing that leads a public website about Canada's
+economy. Readers are ordinary Canadians, not economists. Write like a good newspaper economics
+reporter: plain, specific, varied sentences, with the most important news first.
 
-Rules, all mandatory:
-- Use ONLY numbers that appear in the FACTS "value" fields, with their units, written exactly
-  as given (same decimals). No other numbers at all: no dates except month names with their
-  year, no invented figures, no calculations of your own.
-- Name the measure in every sentence that contains a number ("the unemployment rate", "core
-  inflation", "real GDP", or the province name together with the measure). Never "the rate"
-  or "it" on its own: each sentence is checked on its own.
-- One measure per sentence where you can.
-- Changes are given as a direction and a size ("down 0.7 percentage points"). Write them with
-  a direction word and the size ("fell 0.7 percentage points"). Use ONE direction word: "rose 27.8%"
-  or "was up 27.8%", never "rose up" or "fell up". Never use a minus sign.
+An automatic checker reads every sentence. A draft that breaks any of these rules is thrown away:
+- Numbers: use ONLY values from the FACTS "value" fields, written exactly as given (same decimals,
+  with their units). No other numbers: no dates except a month name with its year, nothing
+  calculated or rounded by you.
+- Every sentence that has a number names its measure in that same sentence, in words a reader
+  knows: "the unemployment rate", "inflation", "core inflation", "gasoline prices", "grocery
+  prices", "shelter costs", "real GDP", "the job vacancy rate". A province's figure needs the
+  province AND the measure. Never "the rate" or "it" on its own.
+- Changes are given as a direction and a size ("down 0.7 percentage points"). Write ONE direction
+  word with the size: "fell 0.7 percentage points", "rose 27.8%" or "was up 27.8%". Never "rose
+  up" or "fell up", never a minus sign.
 - Where a fact's note says a change is NOT statistically significant, say it is within the
-  survey's margin of error. Do not call it a rise or fall in the headline sense.
-- Neutral, plain English for a general reader. No advice, no predictions beyond the forecast
-  facts, no causes that are not in the facts.
-- 3 short paragraphs, 150 to 200 words in total: labour market; prices and housing; output,
-  job vacancies and the one-month outlook. Plain text, paragraphs separated by a blank line.
-- Do not use em dashes or en dashes. Use commas, colons or full stops."""
+  survey's margin of error, and don't present it as a rise or fall.
+- A forecast's range goes in the same sentence as the forecast and its measure, for example
+  "Inflation is forecast at A% for <month>, with an 80% range of B% to C%."
+- No advice, no predictions beyond the forecast facts, no causes that are not in the facts.
+- No em dashes or en dashes. Use commas, colons or full stops.
+
+Style:
+- 3 short paragraphs, 130 to 180 words in total: jobs; prices and housing; output, job vacancies
+  and next month's outlook.
+- Open each paragraph with its biggest news, not a definition or a date. Name the month at most
+  once per paragraph.
+- Everyday words: "Canada lost N jobs" rather than "employment change was down N
+  thousand", using the people form of the number only. "Grocery prices", never "food purchased from
+  stores prices".
+- Vary sentence openings. Two related facts can share one sentence when both measures are named.
+- You don't have to use every fact. Leave out ones that add little, such as restating the
+  Bank of Canada's target range in full.
+- Plain text, paragraphs separated by a blank line."""
 
 
 def call_gemini(prompt: str, api_key: str) -> tuple[str, float]:
