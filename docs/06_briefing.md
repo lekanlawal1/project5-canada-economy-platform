@@ -160,6 +160,38 @@ Every number correct, but the style is flat and list-like. The strict rules (nam
 in every sentence, copy values exactly) trade fluency for checkability. That is the right trade
 for a public page; a looser style would need a smarter verifier first.
 
+### November 2026: a bug, then a better-written briefing
+
+The briefing became the lead story on the redesigned front page, and two problems showed.
+
+**A wording bug got through.** The live briefing said "shelter prices fell up 1.8%". The
+direction check treated a window containing both a rise word and a fall word as ambiguous and
+passed it. Contradictory words now fail, and so does a doubled verb ("rose up 27.8%"). Making
+that strict caused one new false alarm ("Despite the monthly dip, real GDP was up 1.5%"), fixed
+by stopping the look-back at a clause break, the same rule the look-ahead already used.
+
+**The writing was flat, and fixing it took two tries.** Three batches of 10 live runs on the
+September 2026 data, same model, same checks:
+
+| Version | First draft verified | After retry | Fell back to template |
+|---|---|---|---|
+| Old prompt | 6 | 3 | 1 |
+| "Write like a reporter" prompt | 0 | 6 | 4 |
+| Same, plus each change given as a size and a direction | 10 | 0 | 0 |
+
+The reporter prompt alone made the pass rate worse. The model was shown changes as finished
+phrases ("down 68.3 thousand (68,300 people)") and told to copy values exactly, so it wrote
+"Canada lost 68,300 people" (no measure named, rejected) and "a change of up 0.1". Giving it
+the size and the direction as separate fields let it write its own sentence:
+
+> Canada lost 68,300 jobs in September 2026. The unemployment rate reached 6.5%, though a
+> monthly rise of 0.1 percentage points was within the survey's margin of error. [...]
+> Gasoline prices rose 27.8%, while grocery prices rose 1.7% and shelter costs rose 1.8%.
+
+Still not a human reporter: it sometimes adds framing the facts don't support ("This loss left
+the unemployment rate at 6.5%" implies a cause). The verifier checks numbers, not framing; see
+the limits below.
+
 ## Honest limits
 
 - The verifier checks numbers, not reasoning. A draft can be numerically perfect and still
