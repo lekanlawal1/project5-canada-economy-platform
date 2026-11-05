@@ -25,6 +25,9 @@ DOWN = re.compile(r"\b(fell|fall\w*|declin\w*|decreas\w*|down|lower|dropp?\w*|lo
 # Digits glued to letters ("417k", "3rd") are still numbers and still checked; skipping them
 # would be a loophole. The cost: "COVID-19" is flagged too. Strict is the safe direction.
 NUMBER = re.compile(r"(?<![A-Za-z\d.])([-\u2212+]?)(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(?![\d])")
+# A verb and a second direction word: "rose up 27.8%", "fell up 1.8%". Wrong or clumsy either way.
+DOUBLED = re.compile(r"\b(rose|fell|increased|decreased|climbed|dropped|declined|grew|jumped|gained|slipped)"
+                     r"\s+(up|down)\s+(by\s+)?[-\u2212+]?\d", re.I)
 SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(])")
 
 
@@ -59,7 +62,9 @@ class Fact:
             return True
         up, down = bool(UP.search(window)), bool(DOWN.search(window))
         if up and down:
-            return True  # ambiguous wording: do not guess
+            # Contradictory wording fails. It used to pass as "ambiguous", which let a live
+            # briefing publish "shelter prices fell up 1.8%" (November 2026).
+            return False
         if self.value > 0:
             return not down
         if self.value < 0:
@@ -115,6 +120,9 @@ def verify(text: str, facts: list[Fact], allowed_years: set[int] | None = None,
     context_numbers = context_numbers or {}
     findings = []
     for sentence in SENTENCE.split(text.strip()):
+        doubled = DOUBLED.search(sentence)
+        if doubled:
+            findings.append(Finding(doubled.group(0), sentence, False, reason="doubled direction words"))
         matches = list(NUMBER.finditer(sentence))
         for i, m in enumerate(matches):
             raw = m.group(2)

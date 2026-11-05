@@ -204,7 +204,8 @@ Rules, all mandatory:
   or "it" on its own: each sentence is checked on its own.
 - One measure per sentence where you can.
 - Changes are given as a direction and a size ("down 0.7 percentage points"). Write them with
-  a direction word and the size ("fell 0.7 percentage points"). Never use a minus sign.
+  a direction word and the size ("fell 0.7 percentage points"). Use ONE direction word: "rose 27.8%"
+  or "was up 27.8%", never "rose up" or "fell up". Never use a minus sign.
 - Where a fact's note says a change is NOT statistically significant, say it is within the
   survey's margin of error. Do not call it a rise or fall in the headline sense.
 - Neutral, plain English for a general reader. No advice, no predictions beyond the forecast

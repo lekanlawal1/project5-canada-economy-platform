@@ -48,7 +48,7 @@ const App = (() => {
     };
     return merge({
       paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
-      font: { family: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', size: 12, color: t.ink2 },
+      font: { family: '"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', size: 12, color: t.ink2 },
       margin: { l: 8, r: 12, t: 8, b: 8 },
       xaxis: merge(axis, { showgrid: false, type: "date", hoverformat: "%b %Y", showline: true }),
       yaxis: merge(axis, { showgrid: true, zeroline: false }),
@@ -132,42 +132,64 @@ const App = (() => {
   function header() {
     const here = location.pathname.split("/").pop() || "index.html";
     const el = document.getElementById("top");
-    el.className = "top";
-    el.innerHTML = `<div class="top-inner">
-      <a class="brand" href="index.html">
-        <svg class="brand-mark" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="5" fill="var(--accent)"/>
-          <path d="M5 15l4-4 3 3 5-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Canada Economy<span class="brand-long"> Intelligence</span></span></a>
+    el.className = "top" + (here === "index.html" ? " front" : "");
+    el.innerHTML = `<div class="mast-bar">
+        <span class="kicker">Statistics Canada, read for you</span><span class="spacer"></span>
+        <a class="home-link" href="https://lekanlawal1.github.io/portfolio-site/#economy" title="Back to Lekan Lawal's portfolio">Lekan Lawal</a>
+        <button class="theme-btn" type="button"></button></div>
+      <a class="brand" href="index.html">The Canadian Economy</a>
       <nav class="nav" aria-label="Pages">${PAGES.map(([href, label]) =>
-        `<a href="${href}"${href === here ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>
-      <a class="home-link" href="https://lekanlawal1.github.io/portfolio-site/#economy" title="Back to Lekan Lawal's portfolio">Lekan Lawal</a>
-      <button class="theme-btn" type="button"></button></div>`;
+        `<a href="${href}"${href === here ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
     el.querySelector(".theme-btn").addEventListener("click", () =>
       applyTheme(currentTheme() === "dark" ? "light" : "dark"));
     applyTheme(storedTheme());
     // On phones the nav is a swipeable row: bring the current page's link into view.
     const active = el.querySelector('.nav a[aria-current="page"]');
     const nav = el.querySelector(".nav");
-    if (active && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = active.offsetLeft - 16;
+    if (active && active.offsetLeft - nav.offsetLeft + active.offsetWidth > nav.clientWidth)
+      nav.scrollLeft = active.offsetLeft - nav.offsetLeft - 16;
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
+  }
+
+  // meta.json is read by the footer and the front page's dateline: fetch it once
+  let metaP;
+  const meta = () => (metaP ||= json("meta"));
+
+  /* countUp(el, value, format): the number runs up to its value the first time it scrolls into
+     view. The final text is always format(value), so what is read is exactly the published
+     figure. Skipped for reduced motion. */
+  function countUp(el, value, format) {
+    el.textContent = format(value);
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
+    const run = () => {
+      const t0 = performance.now(), dur = 900;
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        el.textContent = format(k < 1 ? value * e : value);
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    const io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { io.disconnect(); run(); } });
+    io.observe(el);
   }
 
   async function footer() {
     const el = document.getElementById("foot");
     try {
-      const meta = await json("meta");
-      const t = meta.tests;
+      const m = await meta();
+      const t = m.tests;
       const ok = t.errors.length === 0;
       const colour = ok ? "var(--good)" : "var(--neg)";
       el.innerHTML = `
         <p class="health"><span class="dot" style="background:${colour}"></span>
           <span><b>${ok ? "All data tests passing" : "Data tests failing"}</b>: ${t.passed} passed,
-          ${t.warnings.length} warnings, ${t.errors.length} errors. Built ${meta.built_at}.</span></p>
-        <p>Source: Statistics Canada, ${meta.sources.map((s) =>
+          ${t.warnings.length} warnings, ${t.errors.length} errors. Built ${m.built_at}.</span></p>
+        <p>Source: Statistics Canada, ${m.sources.map((s) =>
           `<a href="${s.url}">${s.label} (${s.table_code})</a>, to ${month(s.max_ref_date)}`).join("; ")}.
           Contains information licensed under the Open Government Licence: Canada.</p>
         <p>Every number is computed in SQL and checked against StatCan's official releases.
-          <a href="${meta.repo}">Code, tests and method notes</a>.</p>`;
+          <a href="${m.repo}">Code, tests and method notes</a>.</p>`;
     } catch (err) {
       el.textContent = "Data status unavailable.";
     }
@@ -284,6 +306,6 @@ const App = (() => {
 
   function init() { header(); footer(); }
 
-  return { init, json, chart, tok, month, num, signed, dates, sparkline, tableHTML, geoSelect, fail, layout,
+  return { init, json, meta, countUp, chart, tok, month, num, signed, dates, sparkline, tableHTML, geoSelect, fail, layout,
     rangeControl, sliceRange };
 })();

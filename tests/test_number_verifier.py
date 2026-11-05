@@ -53,6 +53,9 @@ BAD = {
     "GDP direction flipped": "The economy shrank 1.4% from a year earlier.",
     "zero change described as a move": "The unemployment rate rose 0.0 points in August 2026.",
     "made-up ordinal": "It was the 3rd straight month of gains in jobs.",
+    # live, November 2026: both slipped through as "ambiguous" wording
+    "contradictory direction (live)": "New home prices fell up 2.0% over 12 months.",
+    "doubled direction (live)": "Gasoline prices rose up 22.8% over twelve months.",
 }
 
 GOOD = {
@@ -65,6 +68,8 @@ GOOD = {
     "target and context numbers": "Inflation held at 3.0% on a 12-month basis, above the Bank of Canada's 2% target.",
     "explicit negative sign": "New home prices changed by -2.0% over 12 months.",
     "gasoline": "Gasoline prices climbed 22.8% over 12 months.",
+    "up as the only direction word": "Gasoline prices were up 22.8% over 12 months.",
+    "edged up": "Gasoline prices edged up 22.8% over 12 months.",
 }
 
 
