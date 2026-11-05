@@ -105,7 +105,13 @@ def direction_window(sentence: str, matches: list, i: int) -> str:
     m = matches[i]
     start = matches[i - 1].end() if i > 0 else 0
     end = matches[i + 1].start() if i + 1 < len(matches) else len(sentence)
-    before = " ".join(sentence[start: m.start()].split()[-6:])
+    before = sentence[start: m.start()]
+    # Same rule looking back: "Despite the monthly dip, real GDP was up 1.5%" must not read "dip"
+    # as describing 1.5 (a false alarm once contradictory words started failing, November 2026).
+    breaks = list(CLAUSE_BREAK.finditer(before))
+    if breaks:
+        before = before[breaks[-1].end():]
+    before = " ".join(before.split()[-6:])
     after = sentence[m.end(): min(end, m.end() + 30)]
     cut = CLAUSE_BREAK.search(after)
     if cut:

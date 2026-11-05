@@ -70,6 +70,8 @@ GOOD = {
     "gasoline": "Gasoline prices climbed 22.8% over 12 months.",
     "up as the only direction word": "Gasoline prices were up 22.8% over 12 months.",
     "edged up": "Gasoline prices edged up 22.8% over 12 months.",
+    "opposite word in an earlier clause": "Despite the monthly dip, real GDP was up 1.4% from a year earlier.",
+    "jobs lost": "Canada lost 41,700 jobs in August 2026.",
 }
 
 

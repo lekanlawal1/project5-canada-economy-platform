@@ -69,16 +69,22 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
         # The model copies what it is shown, so show it the finished wording: units always, and
         # changes as a direction plus an unsigned size. The first live run, given bare signed
         # numbers, wrote "the unemployment rate was 6.4" and "fell by -0.7".
+        # Changes: the size and the direction are separate fields. Shown "down 68.3 thousand (68,300
+        # people)", the model copied it word for word ("a change of up 0.1", "Canada lost 68,300
+        # people"); given a size and a direction it writes its own sentence (November 2026 eval).
+        direction = None
         if display is None:
             if not is_change:
                 display = f"{value:.{decimals}f}{unit}"
             elif value == 0:
                 display = "unchanged"  # no number needed; "0.0 percentage points" read robotically
             else:
-                display = f"{'up' if value > 0 else 'down'} {abs(value):.{decimals}f}{unit}"
+                display = f"{abs(value):.{decimals}f}{unit}"
+        if is_change:
+            direction = "rose" if value > 0 else "fell" if value < 0 else "unchanged"
         described.append({"key": key, "description": description, "month": month_name(month),
-                          "value": display, "number": value, **({"note": note} if note else {}),
-                          **({"place": place} if place else {})})
+                          "value": display, **({"direction": direction} if direction else {}), "number": value,
+                          **({"note": note} if note else {}), **({"place": place} if place else {})})
 
     lab = one(f"""SELECT month, unemployment_rate, unemployment_rate_mom_pp, unemployment_rate_mom_significant,
         unemployment_rate_yoy_pp, unemployment_rate_yoy_significant, employment_mom_k, employment_mom_significant
@@ -92,7 +98,7 @@ def build_facts(con) -> tuple[list[Fact], list[dict], set[int]]:
     add("unemployment_rate_change_year", ur_yoy, 1, ["unemploy"], "Change in unemployment rate from a year earlier, percentage points",
         m, True, note=sig(ur_yoy_sig), unit=" percentage points")
     add("employment_change_month", emp, 1, ["employment", "jobs", "job"], "Change in employment from previous month, thousands of people",
-        m, True, display=f"{'up' if emp > 0 else 'down' if emp < 0 else 'unchanged'} {abs(emp):.1f} thousand ({abs(emp) * 1000:,.0f} people)", scale_forms=[emp * 1000], note=sig(emp_sig))
+        m, True, display=f"{abs(emp) * 1000:,.0f} jobs" if emp else "unchanged", scale_forms=[emp * 1000], note=sig(emp_sig))
 
     hi = one(f"""SELECT geo, unemployment_rate FROM mart_province_scorecard WHERE geo_level = 'province'
         ORDER BY unemployment_rate DESC LIMIT 1""")
@@ -207,9 +213,9 @@ An automatic checker reads every sentence. A draft that breaks any of these rule
   knows: "the unemployment rate", "inflation", "core inflation", "gasoline prices", "grocery
   prices", "shelter costs", "real GDP", "the job vacancy rate". A province's figure needs the
   province AND the measure. Never "the rate" or "it" on its own.
-- Changes are given as a direction and a size ("down 0.7 percentage points"). Write ONE direction
-  word with the size: "fell 0.7 percentage points", "rose 27.8%" or "was up 27.8%". Never "rose
-  up" or "fell up", never a minus sign.
+- A change has a "value" (its size, never signed) and a "direction" (rose or fell). Write the size
+  with ONE direction word that matches: "fell 0.7 percentage points", "rose 27.8%", "was up 27.8%",
+  "Canada lost 68,300 jobs". Never "rose up", "fell down" or "a change of up", never a minus sign.
 - Where a fact's note says a change is NOT statistically significant, say it is within the
   survey's margin of error, and don't present it as a rise or fall.
 - A forecast's range goes in the same sentence as the forecast and its measure, for example
@@ -222,9 +228,8 @@ Style:
   and next month's outlook.
 - Open each paragraph with its biggest news, not a definition or a date. Name the month at most
   once per paragraph.
-- Everyday words: "Canada lost N jobs" rather than "employment change was down N
-  thousand", using the people form of the number only. "Grocery prices", never "food purchased from
-  stores prices".
+- Everyday words: "Canada lost N jobs" or "employers added N jobs" (always the word "jobs" with
+  that number). "Grocery prices", never "food purchased from stores prices".
 - Vary sentence openings. Two related facts can share one sentence when both measures are named.
 - You don't have to use every fact. Leave out ones that add little, such as restating the
   Bank of Canada's target range in full.
