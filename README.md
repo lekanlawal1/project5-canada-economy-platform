@@ -12,7 +12,7 @@ steps.
 flowchart LR
     S[StatCan: 5 tables, 1.4 GB of CSV] -->|ingest: only what changed| R[Raw slices]
     R -->|SQL| ST[Staging] -->|SQL| M[Marts]
-    M --> T{80 data tests}
+    M --> T{89 data tests}
     T -->|any error| X[Stop: live site keeps last good version]
     T -->|pass| F[Forecasts, backtested]
     F --> E[Dashboard JSON]
@@ -69,7 +69,7 @@ dollars. Nothing typed leaves the browser.
 | Ingest | Conditional downloads (`304 Not Modified`), atomic writes, and the 1.18 GB labour file streamed through DuckDB, never loaded into memory whole |
 | SQL models | Raw, staging, marts as versioned `.sql` files; prior months joined by calendar date because suppressed cells leave gaps that would break `LAG()` |
 | Anomalies | Robust z-scores (median and MAD): a classic z-score called the September 2020 unemployment drop normal because COVID inflated the variance |
-| Data tests | 80 checks: keys, nulls, business rules, freshness with a warning band, row counts against the last good run, and StatCan's official figures. Each failure mode was proven by injecting it |
+| Data tests | 89 checks: keys, nulls, business rules, freshness with a warning band, row counts against the last good run, and StatCan's official figures. Each failure mode was proven by injecting it |
 | Forecasts | Rolling-origin backtest, Diebold-Mariano significance test, ranges from real past errors |
 | AI | Gemini drafts, code verifies, template fallback, model output escaped as untrusted input |
 | Automation | Daily cheap check, full rebuild only on new data, refreshed manifest committed back so the next check compares against what was published |
@@ -83,7 +83,7 @@ pip install -r requirements.txt
 python -m src.ingest          # download (about 85 MB of zips)
 python -m src.build           # raw, staging, marts, decision log (about 10 s)
 python -m src.forecast        # backtest and forecasts (about 2 min)
-python -m src.data_tests      # 80 checks against the real data
+python -m src.data_tests      # 89 checks against the real data
 python -m src.site_export     # dashboard data
 python -m src.briefing        # needs GEMINI_API_KEY for the AI path; template otherwise
 cd site && python -m http.server   # open http://localhost:8000
@@ -97,7 +97,7 @@ python -m pytest              # unit tests, offline
 | [01_ingest.md](docs/01_ingest.md) | Downloads, slicing, traps found while profiling |
 | [02_models.md](docs/02_models.md) | SQL layers, significance, anomalies, check against official figures |
 | [decision_log.md](docs/decision_log.md) | Every cleaning decision with rows affected, regenerated each build |
-| [03_data_tests.md](docs/03_data_tests.md) | The 80 checks and proof each can fail |
+| [03_data_tests.md](docs/03_data_tests.md) | The data checks and proof each can fail |
 | [04_forecast_protocol.md](docs/04_forecast_protocol.md) | Evaluation rules, committed before results |
 | [04_forecasts.md](docs/04_forecasts.md) | Results in plain words |
 | [05_dashboard.md](docs/05_dashboard.md) | Design decisions and browser testing |
